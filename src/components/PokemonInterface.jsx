@@ -372,7 +372,16 @@ function PokemonInterface() {
     }
   };
 
-  // Add this JSX where you want the form to appear
+  // Add this function to handle name input validation
+  const handleNameChange = (e) => {
+    // Only allow letters and spaces
+    const value = e.target.value;
+    if (value === '' || /^[A-Za-z\s]+$/.test(value)) {
+      setNewCardName(value);
+    }
+  };
+
+  // Update the name input in your mintForm
   const mintForm = (
     <form onSubmit={handleMintSubmit} className="mint-form">
       <div className="form-group">
@@ -381,9 +390,12 @@ function PokemonInterface() {
           type="text"
           id="cardName"
           value={newCardName}
-          onChange={(e) => setNewCardName(e.target.value)}
+          onChange={handleNameChange}
           required
           placeholder="Enter Pokemon name"
+          pattern="[A-Za-z\s]+"
+          title="Only letters and spaces allowed"
+          maxLength="20"
         />
       </div>
 
@@ -394,9 +406,21 @@ function PokemonInterface() {
           value={newCardType}
           onChange={(e) => setNewCardType(e.target.value)}
         >
-          <option value="fire">Fire</option>
-          <option value="water">Water</option>
-          <option value="grass">Grass</option>
+          <option value="Fire">Fire</option>
+          <option value="Water">Water</option>
+          <option value="Grass">Grass</option>
+          <option value="Electric">Electric</option>
+          <option value="Ice">Ice</option>
+          <option value="Rock">Rock</option>
+          <option value="Ghost">Ghost</option>
+          <option value="Dragon">Dragon</option>
+          <option value="Bug">Bug</option>
+          <option value="Psychic">Psychic</option>
+          <option value="Flying">Flying</option>
+          <option value="Poison">Poison</option>
+          <option value="Ground">Ground</option>
+          <option value="Fighting">Fighting</option>
+          <option value="Normal">Normal</option>
         </select>
       </div>
 
@@ -410,7 +434,7 @@ function PokemonInterface() {
             value={newCardAttack}
             onChange={(e) => setNewCardAttack(Number(e.target.value))}
             min="0"
-            max="100"
+            max="150"
             step="10"
           />
           <button type="button" onClick={() => setNewCardAttack(Math.min(100, newCardAttack + 10))}>+10</button>
@@ -427,7 +451,7 @@ function PokemonInterface() {
             value={newCardDefense}
             onChange={(e) => setNewCardDefense(Number(e.target.value))}
             min="0"
-            max="100"
+            max="150"
             step="10"
           />
           <button type="button" onClick={() => setNewCardDefense(Math.min(100, newCardDefense + 10))}>+10</button>
