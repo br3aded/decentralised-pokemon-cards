@@ -9,7 +9,8 @@
     "compile": "hardhat compile",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "copy-artifacts": "node scripts/copyArtifacts.js"
   },
   "keywords": [],
   "author": "",

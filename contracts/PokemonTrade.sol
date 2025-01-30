@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
+import "./PokemonCard.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 interface IPokemonCard {
@@ -17,12 +18,14 @@ contract PokemonTrade is ReentrancyGuard {
     mapping(uint256 => Sale) public sales;
 
     IPokemonCard public nftContract;
+    PokemonCard public pokemonCard;
 
     event CardListed(uint256 tokenId, uint256 price, address seller);
     event CardSold(uint256 tokenId, address buyer, uint256 price);
 
-    constructor(address _nftContract) {
+    constructor(address _nftContract, address _pokemonCardAddress) {
         nftContract = IPokemonCard(_nftContract);
+        pokemonCard = PokemonCard(_pokemonCardAddress);
     }
 
     function listCard(uint256 tokenId, uint256 price) external nonReentrant {

@@ -1,15 +1,27 @@
-async function main() {
-  // Deploy PokemonCard contract
-  const PokemonCard = await ethers.getContractFactory("contracts/PokemonCard.sol:PokemonCard");
-  const pokemonCard = await PokemonCard.deploy();
-  await pokemonCard.waitForDeployment();
-  console.log("PokemonCard deployed to:", await pokemonCard.getAddress());
+const hre = require("hardhat");
 
-  // Deploy PokemonTrade contract with PokemonCard address
-  const PokemonTrade = await ethers.getContractFactory("contracts/PokemonTrade.sol:PokemonTrade");
-  const pokemonTrade = await PokemonTrade.deploy(await pokemonCard.getAddress());
-  await pokemonTrade.waitForDeployment();
-  console.log("PokemonTrade deployed to:", await pokemonTrade.getAddress());
+async function main() {
+  try {
+    // Get the contract factory
+    console.log("Getting contract factory...");
+    const PokemonCard = await hre.ethers.getContractFactory("PokemonCard");
+    
+    // Deploy PokemonCard
+    console.log("Deploying PokemonCard...");
+    const pokemonCard = await PokemonCard.deploy();
+    await pokemonCard.waitForDeployment();
+    
+    // Get and log PokemonCard details
+    const pokemonCardAddress = await pokemonCard.getAddress();
+    console.log("PokemonCard deployed to:", pokemonCardAddress);
+    const owner = await pokemonCard.owner();
+    console.log("Contract owner:", owner);
+
+  } catch (error) {
+    console.error("Deployment error:", error);
+    console.error("Error details:", error.message);
+    throw error;
+  }
 }
 
 main()
