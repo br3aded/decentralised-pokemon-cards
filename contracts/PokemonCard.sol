@@ -10,7 +10,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract PokemonCard is ERC721, ERC721Enumerable, Ownable {
     struct PokemonAttributes {
         string name;        // Name of the Pokémon
-        string pType;        // Type (e.g., Fire, Water, Electric)
+        string primaryType; // Primary type (e.g., Fire, Water, Electric)
+        string secondaryType; // Secondary type
         uint256 attack;     // Attack points
         uint256 defense;    // Defense points
         // Pokemon number?
@@ -59,14 +60,21 @@ contract PokemonCard is ERC721, ERC721Enumerable, Ownable {
     function mintCard(
         address to,
         string memory name,
-        string memory _type,
+        string memory _primaryType,
+        string memory _secondaryType,
         uint256 attack,
         uint256 defense
     ) external onlyOwner {
         uint256 tokenId = nextTokenId;
 
         // Create the Pokémon card
-        pokemonAttributes[tokenId] = PokemonAttributes(name, _type, attack, defense);
+        pokemonAttributes[tokenId] = PokemonAttributes(
+            name,
+            _primaryType,
+            _secondaryType,
+            attack,
+            defense
+        );
         _safeMint(to, tokenId);
 
         nextTokenId++;

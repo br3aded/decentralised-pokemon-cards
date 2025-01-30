@@ -115,7 +115,12 @@ const PokemonCardABI = [
       },
       {
         "internalType": "string",
-        "name": "_type",
+        "name": "_primaryType",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_secondaryType",
         "type": "string"
       },
       {
@@ -143,7 +148,8 @@ function PokemonInterface() {
   const [isOwner, setIsOwner] = useState(false);
   const [ownerAddress, setOwnerAddress] = useState('');
   const [newCardName, setNewCardName] = useState('');
-  const [newCardType, setNewCardType] = useState('fire');
+  const [newCardPrimaryType, setNewCardPrimaryType] = useState('fire');
+  const [newCardSecondaryType, setNewCardSecondaryType] = useState('none');
   const [newCardAttack, setNewCardAttack] = useState(50);
   const [newCardDefense, setNewCardDefense] = useState(50);
 
@@ -321,7 +327,8 @@ function PokemonInterface() {
         newCards.push({
           tokenId: tokenId.toString(),
           name: attributes.name,
-          type: attributes.pType,
+          primaryType: attributes.pType.split('/')[0],
+          secondaryType: attributes.pType.split('/')[1] || 'None',
           attack: attributes.attack.toString(),
           defense: attributes.defense.toString()
         });
@@ -343,7 +350,8 @@ function PokemonInterface() {
     try {
       console.log("Minting new card with values:", {
         name: newCardName,
-        type: newCardType,
+        primaryType: newCardPrimaryType,
+        secondaryType: newCardSecondaryType,
         attack: newCardAttack,
         defense: newCardDefense
       });
@@ -351,7 +359,8 @@ function PokemonInterface() {
       const tx = await contract.mintCard(
         account,
         newCardName,
-        newCardType,
+        newCardPrimaryType,
+        newCardSecondaryType,
         newCardAttack,
         newCardDefense
       );
@@ -361,7 +370,8 @@ function PokemonInterface() {
       
       // Reset form
       setNewCardName('');
-      setNewCardType('fire');
+      setNewCardPrimaryType('fire');
+      setNewCardSecondaryType('none');
       setNewCardAttack(50);
       setNewCardDefense(50);
       
@@ -400,27 +410,57 @@ function PokemonInterface() {
       </div>
 
       <div className="form-group">
-        <label htmlFor="cardType">Pokemon Type:</label>
+        <label htmlFor="cardPrimaryType">Primary Type:</label>
         <select
-          id="cardType"
-          value={newCardType}
-          onChange={(e) => setNewCardType(e.target.value)}
+          id="cardPrimaryType"
+          value={newCardPrimaryType}
+          onChange={(e) => setNewCardPrimaryType(e.target.value)}
         >
           <option value="Fire">Fire</option>
           <option value="Water">Water</option>
           <option value="Grass">Grass</option>
           <option value="Electric">Electric</option>
           <option value="Ice">Ice</option>
+          <option value="Fighting">Fighting</option>
+          <option value="Poison">Poison</option>
+          <option value="Ground">Ground</option>
+          <option value="Flying">Flying</option>
+          <option value="Psychic">Psychic</option>
+          <option value="Bug">Bug</option>
           <option value="Rock">Rock</option>
           <option value="Ghost">Ghost</option>
           <option value="Dragon">Dragon</option>
-          <option value="Bug">Bug</option>
-          <option value="Psychic">Psychic</option>
-          <option value="Flying">Flying</option>
+          <option value="Dark">Dark</option>
+          <option value="Steel">Steel</option>
+          <option value="Fairy">Fairy</option>
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="cardSecondaryType">Secondary Type:</label>
+        <select
+          id="cardSecondaryType"
+          value={newCardSecondaryType}
+          onChange={(e) => setNewCardSecondaryType(e.target.value)}
+        >
+          <option value="none">None</option>
+          <option value="Fire">Fire</option>
+          <option value="Water">Water</option>
+          <option value="Grass">Grass</option>
+          <option value="Electric">Electric</option>
+          <option value="Ice">Ice</option>
+          <option value="Fighting">Fighting</option>
           <option value="Poison">Poison</option>
           <option value="Ground">Ground</option>
-          <option value="Fighting">Fighting</option>
-          <option value="Normal">Normal</option>
+          <option value="Flying">Flying</option>
+          <option value="Psychic">Psychic</option>
+          <option value="Bug">Bug</option>
+          <option value="Rock">Rock</option>
+          <option value="Ghost">Ghost</option>
+          <option value="Dragon">Dragon</option>
+          <option value="Dark">Dark</option>
+          <option value="Steel">Steel</option>
+          <option value="Fairy">Fairy</option>
         </select>
       </div>
 
@@ -595,7 +635,8 @@ function PokemonInterface() {
             {cards.map((card) => (
               <div key={card.tokenId} className="card">
                 <h3>{card.name}</h3>
-                <p>Type: {card.type}</p>
+                <p>Primary Type: {card.primaryType}</p>
+                <p>Secondary Type: {card.secondaryType !== 'none' ? card.secondaryType : 'None'}</p>
                 <p>Attack: {card.attack}</p>
                 <p>Defense: {card.defense}</p>
                 <p>Token ID: {card.tokenId}</p>
