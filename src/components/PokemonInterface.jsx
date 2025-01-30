@@ -6,8 +6,16 @@ import './PokemonInterface.css';
 const PokemonCardABI = [
   {
     "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [
@@ -134,6 +142,10 @@ function PokemonInterface() {
   const [cards, setCards] = useState([]);
   const [isOwner, setIsOwner] = useState(false);
   const [ownerAddress, setOwnerAddress] = useState('');
+  const [newCardName, setNewCardName] = useState('');
+  const [newCardType, setNewCardType] = useState('fire');
+  const [newCardAttack, setNewCardAttack] = useState(50);
+  const [newCardDefense, setNewCardDefense] = useState(50);
 
   // Add these event listeners in a useEffect
   useEffect(() => {
@@ -323,30 +335,169 @@ function PokemonInterface() {
     }
   }
 
-  // Update the mintCard function
-  async function mintCard() {
-    if (!contract) return;
+  // Add this function to handle form submission
+  const handleMintSubmit = async (e) => {
+    e.preventDefault();
+    if (!contract || !account) return;
+
     try {
-      console.log("Minting new card...");
+      console.log("Minting new card with values:", {
+        name: newCardName,
+        type: newCardType,
+        attack: newCardAttack,
+        defense: newCardDefense
+      });
+
       const tx = await contract.mintCard(
         account,
-        "Pikachu",  // name
-        "Electric", // type
-        55,         // attack
-        40          // defense
+        newCardName,
+        newCardType,
+        newCardAttack,
+        newCardDefense
       );
-      console.log("Minting transaction:", tx.hash);
-      
-      // Wait for transaction to be mined
+
       await tx.wait();
       console.log("Card minted successfully!");
       
-      // Reload the cards
-      await loadCards();
+      // Reset form
+      setNewCardName('');
+      setNewCardType('fire');
+      setNewCardAttack(50);
+      setNewCardDefense(50);
+      
+      // Reload cards
+      loadCards();
     } catch (error) {
       console.error("Error minting card:", error);
     }
-  }
+  };
+
+  // Add this JSX where you want the form to appear
+  const mintForm = (
+    <form onSubmit={handleMintSubmit} className="mint-form">
+      <div className="form-group">
+        <label htmlFor="cardName">Pokemon Name:</label>
+        <input
+          type="text"
+          id="cardName"
+          value={newCardName}
+          onChange={(e) => setNewCardName(e.target.value)}
+          required
+          placeholder="Enter Pokemon name"
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="cardType">Pokemon Type:</label>
+        <select
+          id="cardType"
+          value={newCardType}
+          onChange={(e) => setNewCardType(e.target.value)}
+        >
+          <option value="fire">Fire</option>
+          <option value="water">Water</option>
+          <option value="grass">Grass</option>
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="cardAttack">Attack Points:</label>
+        <div className="number-input">
+          <button type="button" onClick={() => setNewCardAttack(Math.max(0, newCardAttack - 10))}>-10</button>
+          <input
+            type="number"
+            id="cardAttack"
+            value={newCardAttack}
+            onChange={(e) => setNewCardAttack(Number(e.target.value))}
+            min="0"
+            max="100"
+            step="10"
+          />
+          <button type="button" onClick={() => setNewCardAttack(Math.min(100, newCardAttack + 10))}>+10</button>
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="cardDefense">Defense Points:</label>
+        <div className="number-input">
+          <button type="button" onClick={() => setNewCardDefense(Math.max(0, newCardDefense - 10))}>-10</button>
+          <input
+            type="number"
+            id="cardDefense"
+            value={newCardDefense}
+            onChange={(e) => setNewCardDefense(Number(e.target.value))}
+            min="0"
+            max="100"
+            step="10"
+          />
+          <button type="button" onClick={() => setNewCardDefense(Math.min(100, newCardDefense + 10))}>+10</button>
+        </div>
+      </div>
+
+      <button type="submit" className="mint-button">Mint Pokemon Card</button>
+    </form>
+  );
+
+  // Add some CSS for styling
+  const styles = `
+    .mint-form {
+      max-width: 400px;
+      margin: 20px auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .number-input {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .number-input button {
+      padding: 5px 10px;
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .number-input input {
+      width: 80px;
+      text-align: center;
+    }
+
+    .mint-button {
+      width: 100%;
+      padding: 10px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .mint-button:hover {
+      background: #45a049;
+    }
+  `;
 
   useEffect(() => {
     if (account) {
@@ -402,12 +553,17 @@ function PokemonInterface() {
             <button onClick={getOwnerAddress}>Refresh Owner Address</button>
             
             {isOwner ? (
-              <button onClick={mintCard}>Mint New Card</button>
+              <button onClick={loadCards}>Refresh Cards</button>
             ) : (
               <p className="warning">Please connect with the owner account to mint cards</p>
             )}
             
-            <button onClick={loadCards}>Refresh Cards</button>
+            {account && (
+              <div>
+                <h2>Mint New Pokemon Card</h2>
+                {mintForm}
+              </div>
+            )}
           </div>
           
           <h2>Your Pokemon Cards</h2>
@@ -427,6 +583,7 @@ function PokemonInterface() {
           </div>
         </div>
       )}
+      <style>{styles}</style>
     </div>
   );
 }
