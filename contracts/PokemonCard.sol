@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+// Import the ERC721 contract from OpenZeppelin
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract PokemonCard is ERC721Enumerable, Ownable {
+// Inherit from ERC721 and ERC721Enumerable
+contract PokemonCard is ERC721, ERC721Enumerable, Ownable {
     struct PokemonAttributes {
         string name;        // Name of the Pokémon
         string pType;        // Type (e.g., Fire, Water, Electric)
@@ -26,6 +29,31 @@ contract PokemonCard is ERC721Enumerable, Ownable {
 
     // Pass required arguments to base contracts
     constructor() ERC721("PokemonCard", "PKMN") Ownable(msg.sender) {}
+
+    // Required override for ERC721Enumerable
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override(ERC721, ERC721Enumerable)
+        returns (address)
+    {
+        return super._update(to, tokenId, auth);
+    }
+
+    function _increaseBalance(address account, uint128 value)
+        internal
+        override(ERC721, ERC721Enumerable)
+    {
+        super._increaseBalance(account, value);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, ERC721Enumerable)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
 
     // Mint a new Pokémon card with specific attributes
     function mintCard(

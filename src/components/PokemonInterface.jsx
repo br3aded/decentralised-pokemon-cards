@@ -10,13 +10,84 @@ const PokemonCardABI = [
     "type": "constructor"
   },
   {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
+    "inputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "owner",
         "type": "address"
+      }
+    ],
+    "name": "balanceOf",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokenOfOwnerByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getPokemonAttributes",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "pType",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "attack",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "defense",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct PokemonCard.PokemonAttributes",
+        "name": "",
+        "type": "tuple"
       }
     ],
     "stateMutability": "view",
@@ -210,74 +281,31 @@ function PokemonInterface() {
     }
   }
 
-  // Modify your mintCard function to check ownership first
-  async function mintCard() {
-    if (!contract) return;
-    try {
-      const isOwner = await checkOwnership();
-      if (!isOwner) {
-        alert("You need to use the owner account to mint cards!");
-        return;
-      }
-      
-      // Example Pokemon data
-      const pokemonData = {
-        to: account, // We already have the account from state
-        name: "Pikachu",
-        type: "Electric",
-        attack: 55,
-        defense: 40
-      };
-
-      // Mint the Pokemon card
-      const tx = await contract.mintCard(
-        pokemonData.to,
-        pokemonData.name,
-        pokemonData.type,
-        pokemonData.attack,
-        pokemonData.defense
-      );
-      await tx.wait();
-
-      console.log("Pokemon card minted successfully!");
-
-      // Get the token ID of the minted card
-      const tokenId = await contract.nextTokenId() - 1;
-
-      // Add the NFT to MetaMask
-      try {
-        await window.ethereum.request({
-          method: 'wallet_watchAsset',
-          params: {
-            type: 'ERC721',
-            options: {
-              address: contract.address,
-              tokenId: tokenId.toString()
-            },
-          },
-        });
-        console.log('NFT added to wallet!');
-      } catch (error) {
-        console.error('Error adding NFT to wallet:', error);
-      }
-
-      // Load updated cards
-      loadCards();
-    } catch (error) {
-      console.error("Error minting card:", error);
-    }
-  }
-
-  // Load user's cards
+  // Update the loadCards function to use ERC721Enumerable functions
   async function loadCards() {
-    if (!contract || !account) return;
+    if (!contract || !account) {
+      console.log("Contract or account not initialized");
+      return;
+    }
+    
     try {
+      console.log("Loading cards for connected account:", account);
+      
+      // Get number of cards owned by this address
       const balance = await contract.balanceOf(account);
+      console.log(`Account owns ${balance.toString()} cards`);
+      
       const newCards = [];
       
+      // Loop through each card owned by the address
       for (let i = 0; i < balance; i++) {
+        // Get token ID of the i-th token owned by this address
         const tokenId = await contract.tokenOfOwnerByIndex(account, i);
+        console.log(`Loading token ID: ${tokenId}`);
+        
+        // Get the card's attributes
         const attributes = await contract.getPokemonAttributes(tokenId);
+        
         newCards.push({
           tokenId: tokenId.toString(),
           name: attributes.name,
@@ -286,10 +314,37 @@ function PokemonInterface() {
           defense: attributes.defense.toString()
         });
       }
-      
+
+      console.log(`Loaded ${newCards.length} cards:`, newCards);
       setCards(newCards);
+      
     } catch (error) {
       console.error("Error loading cards:", error);
+    }
+  }
+
+  // Update the mintCard function
+  async function mintCard() {
+    if (!contract) return;
+    try {
+      console.log("Minting new card...");
+      const tx = await contract.mintCard(
+        account,
+        "Pikachu",  // name
+        "Electric", // type
+        55,         // attack
+        40          // defense
+      );
+      console.log("Minting transaction:", tx.hash);
+      
+      // Wait for transaction to be mined
+      await tx.wait();
+      console.log("Card minted successfully!");
+      
+      // Reload the cards
+      await loadCards();
+    } catch (error) {
+      console.error("Error minting card:", error);
     }
   }
 
