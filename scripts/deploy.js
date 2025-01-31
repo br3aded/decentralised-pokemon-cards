@@ -21,9 +21,12 @@ async function main() {
     console.log("Getting contract factory for PokemonTrade...");
     const PokemonTrade = await hre.ethers.getContractFactory("PokemonTrade");
 
-    // Deploy PokemonTrade with PokemonCard's address as a constructor argument
+    // Deploy PokemonTrade with both required constructor arguments
     console.log("Deploying PokemonTrade...");
-    const pokemonTrade = await PokemonTrade.deploy(pokemonCardAddress);
+    const pokemonTrade = await PokemonTrade.deploy(
+      pokemonCardAddress, // _nftContract
+      pokemonCardAddress  // _pokemonCardAddress
+    );
     await pokemonTrade.waitForDeployment();
 
     // Get and log PokemonTrade details

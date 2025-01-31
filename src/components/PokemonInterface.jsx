@@ -291,15 +291,28 @@ function PokemonInterface() {
       return false;
     }
     try {
+      console.log("=== CHECKING OWNERSHIP ===");
+      console.log("Current account:", account);
+      
       const owner = await contract.owner();
-      const isOwner = owner.toLowerCase() === account.toLowerCase();
-      console.log('Contract owner:', owner);
-      console.log('Current account:', account);
-      console.log('Is owner?', isOwner);
-      setIsOwner(isOwner);
-      return isOwner;
+      console.log("Contract owner:", owner);
+      
+      // Convert both addresses to lowercase for comparison
+      const isOwnerCheck = owner.toLowerCase() === account.toLowerCase();
+      console.log("Is owner?", isOwnerCheck);
+      
+      setIsOwner(isOwnerCheck);
+      setOwnerAddress(owner);
+      
+      return isOwnerCheck;
     } catch (error) {
       console.error("Error checking ownership:", error);
+      console.error("Error details:", {
+        message: error.message,
+        code: error.code,
+        data: error.data
+      });
+      setIsOwner(false);
       return false;
     }
   }
@@ -615,6 +628,13 @@ function PokemonInterface() {
       getOwnerAddress();
     }
   }, [contract]);
+
+  // Also update the useEffect that checks ownership on contract initialization
+  useEffect(() => {
+    if (contract && account) {
+      checkOwnership();
+    }
+  }, [contract, account]);
 
   return (
     <div className="container">
