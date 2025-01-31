@@ -638,7 +638,7 @@ function PokemonInterface() {
 
   return (
     <div className="container">
-      <h1>Pokemon Card NFT Interface</h1>
+      <h1>Pokemon Card NFT Trading</h1>
       
       {!account ? (
         <div>
@@ -649,27 +649,24 @@ function PokemonInterface() {
         <div>
           <div className="account-info">
             <p>Connected Account: {account}</p>
-            <p>Contract Owner Address: {ownerAddress || 'Loading...'}</p>
-            <p>Account Status: {isOwner ? '(Owner)' : '(Not Owner)'}</p>
+            <p className={isOwner ? "status-owner" : "status-not-owner"}>
+              {isOwner ? "Owner" : "Not Owner"}
+            </p>
           </div>
           
           <div className="action-buttons">
             <button onClick={checkOwnership}>Check Ownership</button>
             <button onClick={getOwnerAddress}>Refresh Owner Address</button>
-            
-            {isOwner ? (
-              <button onClick={loadCards}>Refresh Cards</button>
-            ) : (
-              <p className="warning">Please connect with the owner account to mint cards</p>
-            )}
-            
-            {account && (
-              <div>
-                <h2>Mint New Pokemon Card</h2>
-                {mintForm}
-              </div>
-            )}
+            <button onClick={loadCards}>Refresh Cards</button>
           </div>
+
+          {/* Only show mint form if user is owner */}
+          {isOwner && (
+            <div>
+              <h2>Mint New Pokemon Card</h2>
+              {mintForm}
+            </div>
+          )}
           
           <h2>Your Pokemon Cards</h2>
           <div className="cards-grid">
@@ -686,6 +683,11 @@ function PokemonInterface() {
             {cards.length === 0 && (
               <p>No cards found. Mint some cards to get started!</p>
             )}
+          </div>
+
+          <h2>Active Auctions</h2>
+          <div className="auctions-grid">
+            <p>No active auctions found</p>
           </div>
         </div>
       )}
