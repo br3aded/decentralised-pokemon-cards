@@ -660,7 +660,6 @@ function PokemonInterface() {
             <button onClick={loadCards}>Refresh Cards</button>
           </div>
 
-          {/* Only show mint form if user is owner */}
           {isOwner && (
             <div>
               <h2>Mint New Pokemon Card</h2>
@@ -668,26 +667,30 @@ function PokemonInterface() {
             </div>
           )}
           
-          <h2>Your Pokemon Cards</h2>
-          <div className="cards-grid">
-            {cards.map((card) => (
-              <div key={card.tokenId} className="card">
-                <h3>{card.name}</h3>
-                <p>Primary Type: {card.primaryType}</p>
-                <p>Secondary Type: {card.secondaryType !== 'none' ? card.secondaryType : 'None'}</p>
-                <p>Attack: {card.attack}</p>
-                <p>Defense: {card.defense}</p>
-                <p>Token ID: {card.tokenId}</p>
-              </div>
-            ))}
-            {cards.length === 0 && (
-              <p>No cards found. Mint some cards to get started!</p>
-            )}
+          <div className="cards-container">
+            <h2>Your Pokemon Cards</h2>
+            <div className="cards-grid">
+              {cards.map((card) => (
+                <div key={card.tokenId} className="card">
+                  <h3>{card.name}</h3>
+                  <p>Primary Type: {card.primaryType}</p>
+                  <p>Secondary Type: {card.secondaryType !== 'none' ? card.secondaryType : 'None'}</p>
+                  <p>Attack: {card.attack}</p>
+                  <p>Defense: {card.defense}</p>
+                  <p>Token ID: {card.tokenId}</p>
+                </div>
+              ))}
+              {cards.length === 0 && (
+                <p>No cards found. Mint some cards to get started!</p>
+              )}
+            </div>
           </div>
 
-          <h2>Active Auctions</h2>
-          <div className="auctions-grid">
-            <p>No active auctions found</p>
+          <div className="auctions-container">
+            <h2>Active Auctions</h2>
+            <div className="auctions-grid">
+              <p>No active auctions found</p>
+            </div>
           </div>
         </div>
       )}

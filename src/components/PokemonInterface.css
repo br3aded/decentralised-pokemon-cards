@@ -78,8 +78,9 @@ button:disabled {
   width: 400px;
   margin: 20px 0;
   padding: 20px;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
   border-radius: 8px;
+  background-color: #f5f5f5;
 }
 
 .form-group {
@@ -171,4 +172,18 @@ h1 {
 /* Remove any auto margins from parent containers */
 .container > div {
   width: 100%;
+}
+
+.cards-container {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.auctions-container {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
 }
