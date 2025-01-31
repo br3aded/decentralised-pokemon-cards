@@ -15,6 +15,11 @@ contract PokemonTrade is ReentrancyGuard {
         address seller;
     }
 
+    struct Bid {
+        address bidder;
+        uint256 amount;
+    }
+
     struct Auction {
         uint256 startingPrice;
         uint256 highestBid;
@@ -22,11 +27,11 @@ contract PokemonTrade is ReentrancyGuard {
         address seller;
         uint256 endTime;
         bool active;
+        Bid[] bids;  // Array to store all bids
     }
 
     mapping(uint256 => Sale) public sales;
     mapping(uint256 => Auction) public auctions;
-    mapping(address => mapping(uint256 => uint256)) public pendingReturns;
 
     IPokemonCard public nftContract;
     PokemonCard public pokemonCard;
@@ -36,6 +41,8 @@ contract PokemonTrade is ReentrancyGuard {
     event AuctionCreated(uint256 tokenId, uint256 startingPrice, uint256 duration, address seller);
     event BidPlaced(uint256 tokenId, address bidder, uint256 amount);
     event AuctionEnded(uint256 tokenId, address winner, uint256 amount);
+    event AuctionCancelled(uint256 tokenId, address seller);
+    event BidWithdrawn(uint256 tokenId, address bidder, uint256 amount);
 
     constructor(address _nftContract, address _pokemonCardAddress) {
         nftContract = IPokemonCard(_nftContract);
@@ -91,11 +98,10 @@ contract PokemonTrade is ReentrancyGuard {
         require(block.timestamp < auction.endTime, "Auction has ended");
         require(msg.value > auction.highestBid && msg.value >= auction.startingPrice, "Bid too low");
 
-        if (auction.highestBidder != address(0)) {
-            // Refund the previous highest bidder
-            pendingReturns[auction.highestBidder][tokenId] += auction.highestBid;
-        }
-
+        // Store the new bid in the bids array
+        auction.bids.push(Bid(msg.sender, msg.value));
+        
+        // Update highest bid info
         auction.highestBid = msg.value;
         auction.highestBidder = msg.sender;
 
@@ -115,15 +121,63 @@ contract PokemonTrade is ReentrancyGuard {
             // Transfer the highest bid to the seller
             payable(auction.seller).transfer(auction.highestBid);
 
+            // Refund all losing bids
+            for (uint i = 0; i < auction.bids.length - 1; i++) {
+                Bid memory bid = auction.bids[i];
+                if (bid.bidder != auction.highestBidder) {
+                    payable(bid.bidder).transfer(bid.amount);
+                }
+            }
+
             emit AuctionEnded(tokenId, auction.highestBidder, auction.highestBid);
         }
     }
 
-    function withdrawBid(uint256 tokenId) external nonReentrant {
-        uint256 amount = pendingReturns[msg.sender][tokenId];
-        require(amount > 0, "No funds to withdraw");
+    function cancelAuction(uint256 tokenId) external nonReentrant {
+        Auction storage auction = auctions[tokenId];
+        require(auction.active, "Auction does not exist or has already ended");
+        require(auction.seller == msg.sender, "Only the seller can cancel the auction");
+        require(block.timestamp < auction.endTime, "Auction has already ended");
 
-        pendingReturns[msg.sender][tokenId] = 0;
+        auction.active = false;
+
+        // If there was a bid, immediately refund the highest bidder
+        if (auction.highestBidder != address(0)) {
+            payable(auction.highestBidder).transfer(auction.highestBid);
+        }
+
+        emit AuctionCancelled(tokenId, msg.sender);
+    }
+
+    function withdrawBidEarly(uint256 tokenId) external nonReentrant {
+        Auction storage auction = auctions[tokenId];
+        require(auction.active, "Auction does not exist or has ended");
+        require(auction.highestBidder == msg.sender, "You are not the highest bidder");
+        require(block.timestamp < auction.endTime, "Auction has already ended");
+
+        uint256 amount = auction.highestBid;
+        
+        // Find the previous highest bid
+        uint256 previousHighestBid = auction.startingPrice;
+        address previousHighestBidder = address(0);
+        
+        if (auction.bids.length > 1) {
+            // Get the second-to-last bid
+            Bid memory previousBid = auction.bids[auction.bids.length - 2];
+            previousHighestBid = previousBid.amount;
+            previousHighestBidder = previousBid.bidder;
+        }
+
+        // Update auction state to previous highest bid
+        auction.highestBid = previousHighestBid;
+        auction.highestBidder = previousHighestBidder;
+        
+        // Remove the withdrawn bid from the array
+        auction.bids.pop();
+
+        // Return the bid amount to the withdrawing bidder
         payable(msg.sender).transfer(amount);
+
+        emit BidWithdrawn(tokenId, msg.sender, amount);
     }
 }
