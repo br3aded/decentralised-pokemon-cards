@@ -79,7 +79,12 @@ const PokemonCardABI = [
           },
           {
             "internalType": "string",
-            "name": "pType",
+            "name": "primaryType",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "secondaryType",
             "type": "string"
           },
           {
@@ -307,34 +312,45 @@ function PokemonInterface() {
     }
     
     try {
+      console.log("=== LOADING CARDS ===");
       console.log("Loading cards for connected account:", account);
       
-      // Get number of cards owned by this address
       const balance = await contract.balanceOf(account);
       console.log(`Account owns ${balance.toString()} cards`);
       
       const newCards = [];
       
-      // Loop through each card owned by the address
       for (let i = 0; i < balance; i++) {
-        // Get token ID of the i-th token owned by this address
         const tokenId = await contract.tokenOfOwnerByIndex(account, i);
-        console.log(`Loading token ID: ${tokenId}`);
+        console.log(`\nProcessing token ID: ${tokenId}`);
         
-        // Get the card's attributes
         const attributes = await contract.getPokemonAttributes(tokenId);
+        console.log("Raw attributes from contract:", attributes);
+        console.log("Attack value from contract:", attributes.attack.toString());
+        console.log("Attack value type:", typeof attributes.attack);
+        
+        // Try different conversion methods
+        const attackBN = attributes.attack;
+        const attackString = attributes.attack.toString();
+        const attackNumber = Number(attributes.attack);
+        
+        console.log("Attack conversions:", {
+          original: attackBN,
+          asString: attackString,
+          asNumber: attackNumber
+        });
         
         newCards.push({
           tokenId: tokenId.toString(),
           name: attributes.name,
-          primaryType: attributes.pType.split('/')[0],
-          secondaryType: attributes.pType.split('/')[1] || 'None',
-          attack: attributes.attack.toString(),
-          defense: attributes.defense.toString()
+          primaryType: attributes.primaryType,
+          secondaryType: attributes.secondaryType,
+          attack: attackNumber,
+          defense: Number(attributes.defense)
         });
       }
 
-      console.log(`Loaded ${newCards.length} cards:`, newCards);
+      console.log("\nFinal cards array:", newCards);
       setCards(newCards);
       
     } catch (error) {
@@ -348,6 +364,7 @@ function PokemonInterface() {
     if (!contract || !account) return;
 
     try {
+      console.log("=== MINTING PROCESS ===");
       console.log("Minting new card with values:", {
         name: newCardName,
         primaryType: newCardPrimaryType,
@@ -365,8 +382,14 @@ function PokemonInterface() {
         newCardDefense
       );
 
-      await tx.wait();
+      console.log("Mint transaction:", tx);
+      const receipt = await tx.wait();
+      console.log("Mint receipt:", receipt);
       console.log("Card minted successfully!");
+      
+      // Load the cards immediately after minting
+      console.log("=== LOADING CARDS AFTER MINT ===");
+      await loadCards();
       
       // Reset form
       setNewCardName('');
@@ -375,8 +398,6 @@ function PokemonInterface() {
       setNewCardAttack(50);
       setNewCardDefense(50);
       
-      // Reload cards
-      loadCards();
     } catch (error) {
       console.error("Error minting card:", error);
     }
