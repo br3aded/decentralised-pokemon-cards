@@ -80,14 +80,14 @@ contract PokemonTrade is ReentrancyGuard {
         require(nftContract.ownerOf(tokenId) == msg.sender, "You do not own this card");
         require(!auctions[tokenId].active, "Auction already exists for this token");
 
-        auctions[tokenId] = Auction({
-            startingPrice: startingPrice,
-            highestBid: 0,
-            highestBidder: address(0),
-            seller: msg.sender,
-            endTime: block.timestamp + duration,
-            active: true
-        });
+        Auction storage newAuction = auctions[tokenId];
+        newAuction.startingPrice = startingPrice;
+        newAuction.highestBid = 0;
+        newAuction.highestBidder = address(0);
+        newAuction.seller = msg.sender;
+        newAuction.endTime = block.timestamp + duration;
+        newAuction.active = true;
+        // The bids array will be initialized empty by default
 
         emit AuctionCreated(tokenId, startingPrice, duration, msg.sender);
     }
