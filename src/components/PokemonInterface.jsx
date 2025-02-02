@@ -452,7 +452,9 @@ function PokemonInterface() {
           primaryType: attributes.primaryType,
           secondaryType: attributes.secondaryType,
           attack: attackNumber,
-          defense: Number(attributes.defense)
+          defense: Number(attributes.defense),
+          isOnSale: false, // Added isOnSale property
+          onSale: false // Added onSale property
         });
       }
 
@@ -895,6 +897,14 @@ function PokemonInterface() {
 
         // Log success message after the transaction is confirmed
         console.log(`Successfully listed ${selectedCard?.name} (Token ID: ${selectedCard.tokenId}) for ${price} ETH`);
+
+        // Update the card state to reflect that it is on sale
+        setCards(prevCards => 
+            prevCards.map(card => 
+                card.tokenId === selectedCard.tokenId ? { ...card, onSale: true } : card
+            )
+        );
+
         handleClosePopup(); // Close the popup after listing
     } catch (error) {
         console.error("Error listing card:", error);
@@ -932,6 +942,13 @@ function PokemonInterface() {
                             seller: sale.seller,
                         });
                     }
+
+                    // Update the card state to reflect that it is on sale
+                    setCards(prevCards => 
+                        prevCards.map(card => 
+                            card.tokenId === tokenId.toString() ? { ...card, onSale: true } : card
+                        )
+                    );
                 }
             } catch (error) {
                 // Ignore errors for token IDs that do not exist
@@ -999,8 +1016,14 @@ function PokemonInterface() {
                   <p>Defense: {card.defense}</p>
                   <p>Token ID: {card.tokenId}</p>
                   <div className="card-buttons">
-                    <button className="action-button" onClick={() => handleSellCard(card)}>Sell Card</button>
-                    <button className="action-button">Auction Card</button>
+                    {card.onSale ? (
+                      <button className="action-button">Remove Card from Sale</button>
+                    ) : (
+                      <>
+                        <button className="action-button" onClick={() => handleSellCard(card)}>Sell Card</button>
+                        <button className="action-button">Auction Card</button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
