@@ -411,60 +411,42 @@ function PokemonInterface() {
   }
 
   // Update the loadCards function to use ERC721Enumerable functions
-  async function loadCards() {
-    if (!contract || !account) {
-      console.log("Contract or account not initialized");
-      return;
+  const loadCards = async () => {
+    if (!contract) {
+        console.error("Contract is not initialized.");
+        return;
     }
-    
-    try {
-      console.log("=== LOADING CARDS ===");
-      console.log("Loading cards for connected account:", account);
-      
-      const balance = await contract.balanceOf(account);
-      console.log(`Account owns ${balance.toString()} cards`);
-      
-      const newCards = [];
-      
-      for (let i = 0; i < balance; i++) {
-        const tokenId = await contract.tokenOfOwnerByIndex(account, i);
-        console.log(`\nProcessing token ID: ${tokenId}`);
-        
-        const attributes = await contract.getPokemonAttributes(tokenId);
-        console.log("Raw attributes from contract:", attributes);
-        console.log("Attack value from contract:", attributes.attack.toString());
-        console.log("Attack value type:", typeof attributes.attack);
-        
-        // Try different conversion methods
-        const attackBN = attributes.attack;
-        const attackString = attributes.attack.toString();
-        const attackNumber = Number(attributes.attack);
-        
-        console.log("Attack conversions:", {
-          original: attackBN,
-          asString: attackString,
-          asNumber: attackNumber
-        });
-        
-        newCards.push({
-          tokenId: tokenId.toString(),
-          name: attributes.name,
-          primaryType: attributes.primaryType,
-          secondaryType: attributes.secondaryType,
-          attack: attackNumber,
-          defense: Number(attributes.defense),
-          isOnSale: false, // Added isOnSale property
-          onSale: false // Added onSale property
-        });
-      }
 
-      console.log("\nFinal cards array:", newCards);
-      setCards(newCards);
-      
+    try {
+        const cardsTemp = [];
+        const totalCards = await contract.getNextTokenId(); // Assuming this function exists
+
+        for (let tokenId = 0; tokenId < totalCards; tokenId++) {
+            try {
+                const attributes = await contract.getPokemonAttributes(tokenId);
+                const owner = await contract.ownerOf(tokenId);
+                const isOnSale = await tradeContract.getSale(tokenId); // Check if the card is on sale
+
+                cardsTemp.push({
+                    tokenId,
+                    name: attributes.name,
+                    primaryType: attributes.primaryType,
+                    secondaryType: attributes.secondaryType,
+                    attack: attributes.attack,
+                    defense: attributes.defense,
+                    owner,
+                    onSale: isOnSale.price > 0, // Check if the price is greater than 0
+                });
+            } catch (error) {
+                console.error("Error fetching card attributes or ownership:", error);
+            }
+        }
+
+        setCards(cardsTemp); // Update state with fetched cards
     } catch (error) {
-      console.error("Error loading cards:", error);
+        console.error("Error loading cards:", error);
     }
-  }
+  };
 
   // Add this function to handle form submission
   const handleMintSubmit = async (e) => {
@@ -928,27 +910,33 @@ function PokemonInterface() {
             try {
                 const sale = await tradeContract.getSale(tokenId);
                 if (sale.price > 0) { // Check if the card is listed for sale
-                    allSalesTemp.push({
-                        tokenId,
-                        price: sale.price,
-                        seller: sale.seller,
-                    });
-
+                    // Fetch attributes for the tokenId
+                    const attributes = await contract.getPokemonAttributes(tokenId);
+                    
                     // Check if the current user is the seller
                     if (sale.seller.toLowerCase() === account.toLowerCase()) {
                         yourSalesTemp.push({
                             tokenId,
                             price: sale.price,
                             seller: sale.seller,
+                            name: attributes.name,
+                            primaryType: attributes.primaryType,
+                            secondaryType: attributes.secondaryType,
+                            attack: attributes.attack,
+                            defense: attributes.defense,
+                        });
+                    } else {
+                        allSalesTemp.push({
+                            tokenId,
+                            price: sale.price,
+                            seller: sale.seller,
+                            name: attributes.name,
+                            primaryType: attributes.primaryType,
+                            secondaryType: attributes.secondaryType,
+                            attack: attributes.attack,
+                            defense: attributes.defense,
                         });
                     }
-
-                    // Update the card state to reflect that it is on sale
-                    setCards(prevCards => 
-                        prevCards.map(card => 
-                            card.tokenId === tokenId.toString() ? { ...card, onSale: true } : card
-                        )
-                    );
                 }
             } catch (error) {
                 // Ignore errors for token IDs that do not exist
@@ -969,6 +957,22 @@ function PokemonInterface() {
   useEffect(() => {
     loadActiveSales(); // Load active sales when the component mounts
   }, [tradeContract]); // Run when tradeContract is set
+
+  const handleViewCardAttributes = async (tokenId) => {
+    if (!contract) {
+        console.error("Contract is not initialized.");
+        return;
+    }
+
+    try {
+        const attributes = await contract.getPokemonAttributes(tokenId);
+        console.log("Card Attributes:", attributes);
+        // You can display these attributes in a modal or alert
+        alert(`Name: ${attributes.name}\nPrimary Type: ${attributes.primaryType}\nSecondary Type: ${attributes.secondaryType}\nAttack: ${attributes.attack}\nDefense: ${attributes.defense}`);
+    } catch (error) {
+        console.error("Error fetching card attributes:", error);
+    }
+  };
 
   return (
     <div className="container">
@@ -1058,36 +1062,46 @@ function PokemonInterface() {
 
           <div className="active-sales-container">
             <div className="header-container">
-              <h2>Active Sales</h2>
-              <button className="refresh-button" onClick={loadActiveSales}>Refresh</button>
+                <h2>Active Sales</h2>
+                <button className="refresh-button" onClick={loadActiveSales}>Refresh</button>
             </div>
             
             {/* Your Sales Section */}
             <div className="your-sales-container">
-              <h3>Your Sales</h3>
-              <div className="your-sales-grid">
-                {yourSales.map((sale) => (
-                  <div key={sale.tokenId}>
-                    <p>Token ID: {sale.tokenId}</p>
-                    <p>Price: {sale.price} ETH</p>
-                    <p>Seller: {sale.seller}</p>
-                  </div>
-                ))}
-              </div>
+                <h3>Your Sales</h3>
+                <div className="your-sales-grid">
+                    {yourSales.map((sale) => (
+                        <div key={sale.tokenId} className="card">
+                            <h3>Name: {sale.name}</h3>
+                            <p>Token ID: {sale.tokenId}</p>
+                            <p>Price: {Number(sale.price) / 1e18} ETH</p> {/* Convert Wei to Ether */}
+                            <p>Seller: {sale.seller}</p>
+                            <p>Primary Type: {sale.primaryType}</p>
+                            <p>Secondary Type: {sale.secondaryType}</p>
+                            <p>Attack: {sale.attack}</p>
+                            <p>Defense: {sale.defense}</p>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* All Sales Section */}
             <div className="all-sales-container">
-              <h3>All Sales</h3>
-              <div className="all-sales-grid">
-                {allSales.map((sale) => (
-                  <div key={sale.tokenId}>
-                    <p>Token ID: {sale.tokenId}</p>
-                    <p>Price: {sale.price} ETH</p>
-                    <p>Seller: {sale.seller}</p>
-                  </div>
-                ))}
-              </div>
+                <h3>All Sales</h3>
+                <div className="all-sales-grid">
+                    {allSales.map((sale) => (
+                        <div key={sale.tokenId} className="card">
+                            <h3>Name: {sale.name}</h3>
+                            <p>Token ID: {sale.tokenId}</p>
+                            <p>Price: {Number(sale.price) / 1e18} ETH</p> {/* Convert Wei to Ether */}
+                            <p>Seller: {sale.seller}</p>
+                            <p>Primary Type: {sale.primaryType}</p>
+                            <p>Secondary Type: {sale.secondaryType}</p>
+                            <p>Attack: {sale.attack}</p>
+                            <p>Defense: {sale.defense}</p>
+                        </div>
+                    ))}
+                </div>
             </div>
           </div>
 
