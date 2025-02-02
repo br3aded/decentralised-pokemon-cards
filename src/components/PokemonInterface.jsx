@@ -595,6 +595,67 @@ function PokemonInterface() {
     .mint-button:hover {
       background: #45a049;
     }
+
+    .active-sales-container {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+      background-color: #f9f9f9;
+    }
+
+    .active-sales-grid {
+      /* Additional styles for the grid can be added here */
+    }
+
+    .your-sales-container,
+    .all-sales-container {
+        border: 1px solid #ddd; /* Border color */
+        border-radius: 8px; /* Rounded corners */
+        padding: 10px; /* Padding inside the box */
+        margin: 10px 0; /* Margin above and below the box */
+        background-color: #f9f9f9; /* Light background color */
+    }
+
+    .your-sales-grid,
+    .all-sales-grid {
+        /* Additional styles for the grid can be added here */
+    }
+
+    .your-auctions-container,
+    .all-auctions-container {
+        border: 1px solid #ddd; /* Border color */
+        border-radius: 8px; /* Rounded corners */
+        padding: 10px; /* Padding inside the box */
+        margin: 10px 0; /* Margin above and below the box */
+        background-color: #f9f9f9; /* Light background color */
+    }
+
+    .your-auctions-grid,
+    .all-auctions-grid {
+        /* Additional styles for the grid can be added here */
+    }
+
+    .refresh-button {
+        float: right; /* Aligns the button to the right */
+        padding: 5px 10px; /* Padding for the button */
+        background-color: #ff4d4d; /* Red button background color */
+        color: white; /* Button text color */
+        border: none; /* No border */
+        border-radius: 4px; /* Rounded corners */
+        cursor: pointer; /* Pointer cursor on hover */
+    }
+
+    .refresh-button:hover {
+        background-color: #cc0000; /* Darker red shade on hover */
+    }
+
+    .header-container {
+        display: flex; /* Use flexbox for alignment */
+        justify-content: space-between; /* Space between heading and button */
+        align-items: center; /* Center items vertically */
+        margin-bottom: 10px; /* Space below the header */
+    }
   `;
 
   useEffect(() => {
@@ -668,7 +729,10 @@ function PokemonInterface() {
           )}
           
           <div className="cards-container">
-            <h2>Your Pokemon Cards</h2>
+            <div className="header-container">
+              <h2>Your Pokemon Cards</h2>
+              <button className="refresh-button">Refresh</button>
+            </div>
             <div className="cards-grid">
               {cards.map((card) => (
                 <div key={card.tokenId} className="card">
@@ -686,10 +750,49 @@ function PokemonInterface() {
             </div>
           </div>
 
+          <div className="active-sales-container">
+            <div className="header-container">
+              <h2>Active Sales</h2>
+              <button className="refresh-button">Refresh</button>
+            </div>
+            
+            {/* Your Sales Section */}
+            <div className="your-sales-container">
+              <h3>Your Sales</h3>
+              <div className="your-sales-grid">
+                <p>No sales found for your account.</p>
+              </div>
+            </div>
+
+            {/* All Sales Section */}
+            <div className="all-sales-container">
+              <h3>All Sales</h3>
+              <div className="all-sales-grid">
+                <p>No active sales found.</p>
+              </div>
+            </div>
+          </div>
+
           <div className="auctions-container">
-            <h2>Active Auctions</h2>
-            <div className="auctions-grid">
-              <p>No active auctions found</p>
+            <div className="header-container">
+              <h2>Active Auctions</h2>
+              <button className="refresh-button">Refresh</button>
+            </div>
+            
+            {/* Your Auctions Section */}
+            <div className="your-auctions-container">
+              <h3>Your Auctions</h3>
+              <div className="your-auctions-grid">
+                <p>No auctions found for your account.</p>
+              </div>
+            </div>
+
+            {/* All Auctions Section */}
+            <div className="all-auctions-container">
+              <h3>All Auctions</h3>
+              <div className="all-auctions-grid">
+                <p>No active auctions found.</p>
+              </div>
             </div>
           </div>
         </div>
