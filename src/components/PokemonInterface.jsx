@@ -764,7 +764,7 @@ function PokemonInterface() {
           <div className="cards-container">
             <div className="header-container">
               <h2>Your Pokemon Cards</h2>
-              <button className="refresh-button">Refresh</button>
+              <button className="refresh-button" onClick={loadCards}>Refresh</button>
             </div>
             <div className="cards-grid">
               {cards.map((card) => (
