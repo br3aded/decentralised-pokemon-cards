@@ -423,20 +423,22 @@ function PokemonInterface() {
 
         for (let tokenId = 0; tokenId < totalCards; tokenId++) {
             try {
-                const attributes = await contract.getPokemonAttributes(tokenId);
-                const owner = await contract.ownerOf(tokenId);
-                const isOnSale = await tradeContract.getSale(tokenId); // Check if the card is on sale
+                const owner = await contract.ownerOf(tokenId); // Get the owner of the card
+                if (owner.toLowerCase() === account.toLowerCase()) { // Check if the owner matches the current account
+                    const attributes = await contract.getPokemonAttributes(tokenId);
+                    const isOnSale = await tradeContract.getSale(tokenId); // Check if the card is on sale
 
-                cardsTemp.push({
-                    tokenId,
-                    name: attributes.name,
-                    primaryType: attributes.primaryType,
-                    secondaryType: attributes.secondaryType,
-                    attack: attributes.attack,
-                    defense: attributes.defense,
-                    owner,
-                    onSale: isOnSale.price > 0, // Check if the price is greater than 0
-                });
+                    cardsTemp.push({
+                        tokenId,
+                        name: attributes.name,
+                        primaryType: attributes.primaryType,
+                        secondaryType: attributes.secondaryType,
+                        attack: attributes.attack,
+                        defense: attributes.defense,
+                        owner,
+                        onSale: isOnSale.price > 0, // Check if the price is greater than 0
+                    });
+                }
             } catch (error) {
                 console.error("Error fetching card attributes or ownership:", error);
             }
@@ -1099,6 +1101,7 @@ function PokemonInterface() {
                             <p>Secondary Type: {sale.secondaryType}</p>
                             <p>Attack: {sale.attack}</p>
                             <p>Defense: {sale.defense}</p>
+                            <button className="action-button">Buy Card</button>
                         </div>
                     ))}
                 </div>
