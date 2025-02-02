@@ -637,17 +637,17 @@ function PokemonInterface() {
     }
 
     .refresh-button {
-        float: right; /* Aligns the button to the right */
-        padding: 5px 10px; /* Padding for the button */
-        background-color: #ff4d4d; /* Red button background color */
+        padding: 10px; /* Padding for the button */
+        background-color: #FF0000 !important; /* Pokemon Red */
         color: white; /* Button text color */
         border: none; /* No border */
         border-radius: 4px; /* Rounded corners */
         cursor: pointer; /* Pointer cursor on hover */
+        transition: background-color 0.2s; /* Smooth transition for hover effect */
     }
 
     .refresh-button:hover {
-        background-color: #cc0000; /* Darker red shade on hover */
+        background-color: #CC0000 !important; /* Darker Pokemon Red */
     }
 
     .header-container {
@@ -655,6 +655,39 @@ function PokemonInterface() {
         justify-content: space-between; /* Space between heading and button */
         align-items: center; /* Center items vertically */
         margin-bottom: 10px; /* Space below the header */
+    }
+
+    .card-buttons {
+        display: flex; /* Use flexbox for button alignment */
+        gap: 5px; /* Space between buttons */
+        margin-top: 10px; /* Space above the buttons */
+        flex-wrap: wrap; /* Allow buttons to wrap if necessary */
+    }
+
+    .action-button {
+        padding: 5px 10px; /* Padding for the button */
+        background-color: #FF0000 !important; /* Pokemon Red */
+        color: white; /* Button text color */
+        border: none; /* No border */
+        border-radius: 4px; /* Rounded corners */
+        cursor: pointer; /* Pointer cursor on hover */
+        flex: 1; /* Allow buttons to grow equally */
+        min-width: 80px; /* Minimum width for buttons */
+        max-width: 100px; /* Maximum width for buttons */
+    }
+
+    .action-button:hover {
+        background-color: #CC0000 !important; /* Darker Pokemon Red */
+    }
+
+    .card {
+        display: flex; /* Use flexbox for card layout */
+        flex-direction: column; /* Stack elements vertically */
+        padding: 10px; /* Padding inside the card */
+        border: 1px solid #ddd; /* Border for the card */
+        border-radius: 8px; /* Rounded corners */
+        margin: 10px; /* Margin around the card */
+        max-width: 200px; /* Set a maximum width for the card */
     }
   `;
 
@@ -742,6 +775,10 @@ function PokemonInterface() {
                   <p>Attack: {card.attack}</p>
                   <p>Defense: {card.defense}</p>
                   <p>Token ID: {card.tokenId}</p>
+                  <div className="card-buttons">
+                    <button className="action-button">Sell Card</button>
+                    <button className="action-button">Auction Card</button>
+                  </div>
                 </div>
               ))}
               {cards.length === 0 && (
