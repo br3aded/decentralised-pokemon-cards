@@ -162,6 +162,19 @@ const PokemonCardABI = [
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getNextTokenId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ];
 
@@ -322,48 +335,41 @@ function PokemonInterface() {
         const signer = await provider.getSigner();
         setAccount(accounts[0]);
 
-        // Initialize contract
-        const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Your contract address
-        console.log("Attempting to connect to contract at:", contractAddress);
-        
-        // Wait for a moment to ensure the network is synced
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
+        // Initialize PokemonCard contract
+        const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Your PokemonCard address
         const pokemonContract = new ethers.Contract(
-          contractAddress,
-          PokemonCardABI,
-          signer
+            contractAddress,
+            PokemonCardABI,
+            signer
         );
-        
-        // Test contract connection
-        try {
-            console.log("Testing contract connection...");
-            // Wait for provider to be ready
-            await provider.ready;
-            
-            const ownerAddress = await pokemonContract.owner();
-            console.log("Successfully connected to contract!");
-            console.log("Contract owner address:", ownerAddress);
-            setOwnerAddress(ownerAddress);
-            setContract(pokemonContract);
-            
-            // Check if connected account is owner
-            const isOwnerCheck = ownerAddress.toLowerCase() === accounts[0].toLowerCase();
-            setIsOwner(isOwnerCheck);
-            console.log("Is connected account owner?", isOwnerCheck);
-        } catch (error) {
-            console.error("Error accessing contract:", error);
-            console.error("Error details:", {
-                message: error.message,
-                code: error.code,
-                data: error.data
-            });
-            alert("Please make sure your Hardhat node is running and try again.");
-        }
+        setContract(pokemonContract);
 
+        // Initialize PokemonTrade contract
+        const tradeContractAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // Your PokemonTrade address
+        const pokemonTradeContract = new ethers.Contract(
+            tradeContractAddress,
+            PokemonTradeABI,
+            signer
+        );
+        setTradeContract(pokemonTradeContract); // Set the trade contract
+        console.log("Trade contract initialized:", pokemonTradeContract);
+
+        // Test contract connection
+        console.log("Testing contract connection...");
+        await provider.ready;
+        
+        const ownerAddress = await pokemonContract.owner();
+        console.log("Successfully connected to contract!");
+        console.log("Contract owner address:", ownerAddress);
+        setOwnerAddress(ownerAddress);
+        setContract(pokemonContract);
+        
+        // Check if connected account is owner
+        const isOwnerCheck = ownerAddress.toLowerCase() === accounts[0].toLowerCase();
+        setIsOwner(isOwnerCheck);
+        console.log("Is connected account owner?", isOwnerCheck);
       } catch (error) {
         console.error("Error connecting wallet:", error);
-        console.error("Error details:", error);
         alert("Error connecting wallet. Please check console for details.");
       }
     } else {
@@ -906,7 +912,7 @@ function PokemonInterface() {
         const yourSalesTemp = []; // Array to hold user's sales
         const allSalesTemp = []; // Array to hold all active sales
 
-        const activeSalesCount = await contract.getNextTokenId(); // Assuming you have this function
+        const activeSalesCount = await contract.getNextTokenId(); // Get the next token ID
 
         for (let tokenId = 0; tokenId < activeSalesCount; tokenId++) {
             try {
@@ -934,10 +940,18 @@ function PokemonInterface() {
 
         setYourSales(yourSalesTemp); // Update state with user's sales
         setAllSales(allSalesTemp); // Update state with all active sales
+
+        // Log the active sales for verification
+        console.log("Your Sales:", yourSalesTemp);
+        console.log("All Active Sales:", allSalesTemp);
     } catch (error) {
         console.error("Error loading active sales:", error);
     }
   };
+
+  useEffect(() => {
+    loadActiveSales(); // Load active sales when the component mounts
+  }, [tradeContract]); // Run when tradeContract is set
 
   return (
     <div className="container">

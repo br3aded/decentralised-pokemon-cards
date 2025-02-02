@@ -89,4 +89,8 @@ contract PokemonCard is ERC721, ERC721Enumerable, Ownable {
         require(ownerOf(tokenId) != address(0), "Token does not exist");
         return pokemonAttributes[tokenId];
     }
+
+    function getNextTokenId() external view returns (uint256) {
+    return nextTokenId;
+}
 }
