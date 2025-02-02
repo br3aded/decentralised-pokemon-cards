@@ -180,4 +180,8 @@ contract PokemonTrade is ReentrancyGuard {
 
         emit BidWithdrawn(tokenId, msg.sender, amount);
     }
+
+    function getSale(uint256 tokenId) external view returns (Sale memory) {
+        return sales[tokenId];
+    }
 }

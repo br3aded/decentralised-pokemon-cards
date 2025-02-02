@@ -143,7 +143,79 @@ const PokemonCardABI = [
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "ownerOf",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
+];
+
+const PokemonTradeABI = [
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "price",
+                "type": "uint256"
+            }
+        ],
+        "name": "listCard",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            }
+        ],
+        "name": "getSale",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "price",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "seller",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct PokemonTrade.Sale",
+                "name": "",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    // Add other functions as needed
 ];
 
 function PokemonInterface() {
@@ -160,6 +232,9 @@ function PokemonInterface() {
   const [showSellPopup, setShowSellPopup] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [price, setPrice] = useState('');
+  const [tradeContract, setTradeContract] = useState(null);
+  const [yourSales, setYourSales] = useState([]);
+  const [allSales, setAllSales] = useState([]);
 
   // Add these event listeners in a useEffect
   useEffect(() => {
@@ -167,21 +242,30 @@ function PokemonInterface() {
     const checkConnection = async () => {
       if (typeof window.ethereum !== 'undefined') {
         try {
-          // Create provider using ethers v6 syntax
           const provider = new ethers.BrowserProvider(window.ethereum);
           const accounts = await provider.listAccounts();
           if (accounts.length > 0) {
             setAccount(accounts[0].address);
             const signer = await provider.getSigner();
             
-            // Initialize contract
-            const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Replace with your contract address
+            // Initialize PokemonCard contract
+            const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Your PokemonCard address
             const pokemonContract = new ethers.Contract(
-              contractAddress,
-              PokemonCardABI,
-              signer
+                contractAddress,
+                PokemonCardABI,
+                signer
             );
             setContract(pokemonContract);
+
+            // Initialize PokemonTrade contract
+            const tradeContractAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // Your PokemonTrade address
+            const pokemonTradeContract = new ethers.Contract(
+                tradeContractAddress,
+                PokemonTradeABI,
+                signer
+            );
+            setTradeContract(pokemonTradeContract); // Set the trade contract
+            console.log("Trade contract initialized:", pokemonTradeContract);
           }
         } catch (error) {
           console.error("Error checking connection:", error);
@@ -728,10 +812,10 @@ function PokemonInterface() {
 
   // Add this useEffect to log state changes
   useEffect(() => {
-    console.log("Account changed:", account);
+    console.log("Account:", account);
     console.log("Contract instance:", contract ? "Yes" : "No");
-    console.log("Is owner:", isOwner);
-  }, [account, contract, isOwner]);
+    console.log("Trade Contract instance:", tradeContract ? "Yes" : "No");
+  }, [account, contract, tradeContract]);
 
   // Add this function to get the owner address
   async function getOwnerAddress() {
@@ -770,15 +854,89 @@ function PokemonInterface() {
     setPrice('');
   };
 
-  const handleListCard = () => {
+  const handleListCard = async () => {
     // Validate the price input
     if (parseFloat(price) <= 0) {
         alert("Please enter a valid price greater than 0 ETH.");
         return; // Exit the function if the price is invalid
     }
-    
-    console.log(`Listing ${selectedCard?.name} for ${price} ETH`);
-    handleClosePopup();
+
+    if (!tradeContract) {
+        alert("Trade contract is not initialized. Please connect your wallet.");
+        return; // Exit if the contract is not initialized
+    }
+
+    try {
+        // Convert price to Wei
+        const priceInWei = (parseFloat(price) * 10**18).toString(); // Convert ETH to Wei
+
+        // Check if the user is the owner of the card using the PokemonCard contract
+        const owner = await contract.ownerOf(selectedCard.tokenId);
+        console.log("Card Owner:", owner);
+        console.log("Current User:", account);
+
+        if (owner.toLowerCase() !== account.toLowerCase()) {
+            alert("You do not own this card.");
+            return; // Exit if the user does not own the card
+        }
+
+        // Log the details of the sale before listing
+        console.log(`Attempting to list card with Token ID: ${selectedCard.tokenId} for ${price} ETH`);
+
+        // Call the listCard function from the trade contract
+        const tx = await tradeContract.listCard(selectedCard.tokenId, priceInWei);
+        const receipt = await tx.wait(); // Wait for the transaction to be mined
+
+        // Log success message after the transaction is confirmed
+        console.log(`Successfully listed ${selectedCard?.name} (Token ID: ${selectedCard.tokenId}) for ${price} ETH`);
+        handleClosePopup(); // Close the popup after listing
+    } catch (error) {
+        console.error("Error listing card:", error);
+        alert("Failed to list the card. Please check the console for details.");
+    }
+  };
+
+  const loadActiveSales = async () => {
+    if (!tradeContract) {
+        console.error("Trade contract is not initialized.");
+        return;
+    }
+
+    try {
+        const yourSalesTemp = []; // Array to hold user's sales
+        const allSalesTemp = []; // Array to hold all active sales
+
+        const activeSalesCount = await contract.getNextTokenId(); // Assuming you have this function
+
+        for (let tokenId = 0; tokenId < activeSalesCount; tokenId++) {
+            try {
+                const sale = await tradeContract.getSale(tokenId);
+                if (sale.price > 0) { // Check if the card is listed for sale
+                    allSalesTemp.push({
+                        tokenId,
+                        price: sale.price,
+                        seller: sale.seller,
+                    });
+
+                    // Check if the current user is the seller
+                    if (sale.seller.toLowerCase() === account.toLowerCase()) {
+                        yourSalesTemp.push({
+                            tokenId,
+                            price: sale.price,
+                            seller: sale.seller,
+                        });
+                    }
+                }
+            } catch (error) {
+                // Ignore errors for token IDs that do not exist
+            }
+        }
+
+        setYourSales(yourSalesTemp); // Update state with user's sales
+        setAllSales(allSalesTemp); // Update state with all active sales
+    } catch (error) {
+        console.error("Error loading active sales:", error);
+    }
   };
 
   return (
@@ -864,14 +1022,20 @@ function PokemonInterface() {
           <div className="active-sales-container">
             <div className="header-container">
               <h2>Active Sales</h2>
-              <button className="refresh-button">Refresh</button>
+              <button className="refresh-button" onClick={loadActiveSales}>Refresh</button>
             </div>
             
             {/* Your Sales Section */}
             <div className="your-sales-container">
               <h3>Your Sales</h3>
               <div className="your-sales-grid">
-                <p>No sales found for your account.</p>
+                {yourSales.map((sale) => (
+                  <div key={sale.tokenId}>
+                    <p>Token ID: {sale.tokenId}</p>
+                    <p>Price: {sale.price} ETH</p>
+                    <p>Seller: {sale.seller}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -879,7 +1043,13 @@ function PokemonInterface() {
             <div className="all-sales-container">
               <h3>All Sales</h3>
               <div className="all-sales-grid">
-                <p>No active sales found.</p>
+                {allSales.map((sale) => (
+                  <div key={sale.tokenId}>
+                    <p>Token ID: {sale.tokenId}</p>
+                    <p>Price: {sale.price} ETH</p>
+                    <p>Seller: {sale.seller}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
