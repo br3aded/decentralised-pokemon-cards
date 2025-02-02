@@ -157,6 +157,9 @@ function PokemonInterface() {
   const [newCardSecondaryType, setNewCardSecondaryType] = useState('none');
   const [newCardAttack, setNewCardAttack] = useState(50);
   const [newCardDefense, setNewCardDefense] = useState(50);
+  const [showSellPopup, setShowSellPopup] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [price, setPrice] = useState('');
 
   // Add these event listeners in a useEffect
   useEffect(() => {
@@ -689,6 +692,32 @@ function PokemonInterface() {
         margin: 10px; /* Margin around the card */
         max-width: 200px; /* Set a maximum width for the card */
     }
+
+    .popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .popup-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .popup-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
   `;
 
   useEffect(() => {
@@ -729,6 +758,28 @@ function PokemonInterface() {
       checkOwnership();
     }
   }, [contract, account]);
+
+  const handleSellCard = (card) => {
+    setSelectedCard(card);
+    setShowSellPopup(true);
+  };
+
+  const handleClosePopup = () => {
+    setShowSellPopup(false);
+    setSelectedCard(null);
+    setPrice('');
+  };
+
+  const handleListCard = () => {
+    // Validate the price input
+    if (parseFloat(price) <= 0) {
+        alert("Please enter a valid price greater than 0 ETH.");
+        return; // Exit the function if the price is invalid
+    }
+    
+    console.log(`Listing ${selectedCard?.name} for ${price} ETH`);
+    handleClosePopup();
+  };
 
   return (
     <div className="container">
@@ -776,7 +827,7 @@ function PokemonInterface() {
                   <p>Defense: {card.defense}</p>
                   <p>Token ID: {card.tokenId}</p>
                   <div className="card-buttons">
-                    <button className="action-button">Sell Card</button>
+                    <button className="action-button" onClick={() => handleSellCard(card)}>Sell Card</button>
                     <button className="action-button">Auction Card</button>
                   </div>
                 </div>
@@ -786,6 +837,29 @@ function PokemonInterface() {
               )}
             </div>
           </div>
+
+          {/* Popup for Selling Card */}
+          {showSellPopup && (
+            <div className="popup">
+              <div className="popup-content">
+                <h3>List {selectedCard?.name} for Sale</h3>
+                <p>Token ID: {selectedCard?.tokenId}</p>
+                <p>Price (ETH):</p>
+                <input 
+                  type="number" 
+                  value={price} 
+                  onChange={(e) => setPrice(e.target.value)} 
+                  placeholder="Enter price in ETH" 
+                  min="0"
+                  step="0.01"
+                />
+                <div className="popup-buttons">
+                  <button className="action-button" onClick={handleListCard}>List Card</button>
+                  <button className="action-button" onClick={handleClosePopup}>Close</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="active-sales-container">
             <div className="header-container">

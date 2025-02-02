@@ -187,3 +187,30 @@ h1 {
   padding: 20px;
   margin: 20px 0;
 }
+
+.popup {
+    position: fixed; /* Fixed position */
+    top: 0; /* Align to the top */
+    left: 0; /* Align to the left */
+    right: 0; /* Align to the right */
+    bottom: 0; /* Align to the bottom */
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    display: flex; /* Use flexbox for centering */
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+    z-index: 1000; /* Ensure it appears above other content */
+}
+
+.popup-content {
+    background-color: white; /* White background for the popup */
+    padding: 20px; /* Padding inside the popup */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Shadow for depth */
+    width: 300px; /* Set a width for the popup */
+}
+
+.popup-buttons {
+    display: flex; /* Use flexbox for button alignment */
+    justify-content: space-between; /* Space between buttons */
+    margin-top: 10px; /* Space above the buttons */
+}
