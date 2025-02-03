@@ -228,6 +228,19 @@ const PokemonTradeABI = [
         "stateMutability": "view",
         "type": "function"
     },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            }
+        ],
+        "name": "removeCardFromSale",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
     // Add other functions as needed
 ];
 
@@ -912,9 +925,8 @@ function PokemonInterface() {
     }
 
     try {
-        const yourSalesTemp = []; // Array to hold user's sales
-        const allSalesTemp = []; // Array to hold all active sales
-
+        const yourSalesTemp = [];
+        const allSalesTemp = [];
         const activeSalesCount = await contract.getNextTokenId(); // Get the next token ID
 
         for (let tokenId = 0; tokenId < activeSalesCount; tokenId++) {
@@ -984,6 +996,25 @@ function PokemonInterface() {
         console.error("Error fetching card attributes:", error);
     }
   };
+
+  async function handleRemoveFromSale(tokenId) {
+    if (!tradeContract) {
+        alert("Trade contract is not initialized. Please connect your wallet.");
+        return;
+    }
+
+    try {
+        const tx = await tradeContract.removeCardFromSale(tokenId);
+        await tx.wait(); // Wait for the transaction to be mined
+        console.log(`Card with Token ID ${tokenId} removed from sale successfully!`);
+
+        // Optionally, refresh the sales data after removal
+        loadActiveSales();
+    } catch (error) {
+        console.error("Error removing card from sale:", error);
+        alert("Failed to remove the card from sale. Please check the console for details.");
+    }
+  }
 
   return (
     <div className="container">
@@ -1092,7 +1123,7 @@ function PokemonInterface() {
                                 <p>Secondary Type: {sale.secondaryType}</p>
                                 <p>Attack: {Number(sale.attack)}</p>
                                 <p>Defense: {Number(sale.defense)}</p>
-                                <button className="action-button">Remove from Sale</button>
+                                <button className="action-button" onClick={() => handleRemoveFromSale(sale.tokenId)}>Remove from Sale</button>
                             </div>
                         ))
                     ) : (

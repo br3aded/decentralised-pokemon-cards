@@ -38,6 +38,7 @@ contract PokemonTrade is ReentrancyGuard {
 
     event CardListed(uint256 tokenId, uint256 price, address seller);
     event CardSold(uint256 tokenId, address buyer, uint256 price);
+    event CardRemovedFromSale(uint256 tokenId, address seller);
     event AuctionCreated(uint256 tokenId, uint256 startingPrice, uint256 duration, address seller);
     event BidPlaced(uint256 tokenId, address bidder, uint256 amount);
     event AuctionEnded(uint256 tokenId, address winner, uint256 amount);
@@ -72,6 +73,16 @@ contract PokemonTrade is ReentrancyGuard {
         nftContract.safeTransferFrom(seller, msg.sender, tokenId);
 
         emit CardSold(tokenId, msg.sender, sale.price);
+    }
+
+    function removeCardFromSale(uint256 tokenId) external nonReentrant {
+        Sale memory sale = sales[tokenId];
+        require(sale.seller == msg.sender, "Only the seller can remove the card from sale");
+        require(sale.price > 0, "Card is not for sale");
+
+        delete sales[tokenId]; // Remove the sale
+
+        emit CardRemovedFromSale(tokenId, msg.sender); // Emit an event for logging
     }
 
     function createAuction(uint256 tokenId, uint256 startingPrice, uint256 duration) external nonReentrant {
@@ -184,4 +195,6 @@ contract PokemonTrade is ReentrancyGuard {
     function getSale(uint256 tokenId) external view returns (Sale memory) {
         return sales[tokenId];
     }
+
+
 }
