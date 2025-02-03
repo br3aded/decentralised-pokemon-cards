@@ -794,6 +794,15 @@ function PokemonInterface() {
       justify-content: space-between;
       margin-top: 20px;
     }
+
+    .listed-for-sale {
+        color: red; /* Set text color to red */
+        border: 1px solid red; /* Set border color to red */
+        padding: 5px; /* Add some padding */
+        border-radius: 4px; /* Optional: round the corners */
+        display: inline-block; /* Make the box fit the text */
+        margin-top: 5px; /* Optional: add some space above */
+    }
   `;
 
   useEffect(() => {
@@ -1022,9 +1031,8 @@ function PokemonInterface() {
                   <p>Defense: {Number(card.defense)}</p>
                   <p>Token ID: {card.tokenId}</p>
                   <div className="card-buttons">
-
                     {card.onSale ? (
-                      <button className="action-button">Remove Card from Sale</button>
+                      <p className="listed-for-sale">Listed for Sale</p>
                     ) : (
                       <>
                         <button className="action-button" onClick={() => handleSellCard(card)}>Sell Card</button>
@@ -1084,8 +1092,8 @@ function PokemonInterface() {
                                 <p>Secondary Type: {sale.secondaryType}</p>
                                 <p>Attack: {Number(sale.attack)}</p>
                                 <p>Defense: {Number(sale.defense)}</p>
+                                <button className="action-button">Remove from Sale</button>
                             </div>
-
                         ))
                     ) : (
                         <p>No sales found on your account.</p> // Message when there are no sales listed by the account

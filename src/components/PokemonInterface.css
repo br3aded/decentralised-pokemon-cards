@@ -214,3 +214,12 @@ h1 {
     justify-content: space-between; /* Space between buttons */
     margin-top: 10px; /* Space above the buttons */
 }
+
+.listed-for-sale {
+    color: red; /* Set text color to red */
+    border: 1px solid red; /* Set border color to red */
+    padding: 5px; /* Add some padding */
+    border-radius: 4px; /* Optional: round the corners */
+    display: inline-block; /* Make the box fit the text */
+    margin-top: 5px; /* Optional: add some space above */
+}
