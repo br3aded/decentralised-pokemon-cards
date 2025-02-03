@@ -1018,10 +1018,11 @@ function PokemonInterface() {
                   <h3>{card.name}</h3>
                   <p>Primary Type: {card.primaryType}</p>
                   <p>Secondary Type: {card.secondaryType !== 'none' ? card.secondaryType : 'None'}</p>
-                  <p>Attack: {card.attack}</p>
-                  <p>Defense: {card.defense}</p>
+                  <p>Attack: {Number(card.attack)}</p>
+                  <p>Defense: {Number(card.defense)}</p>
                   <p>Token ID: {card.tokenId}</p>
                   <div className="card-buttons">
+
                     {card.onSale ? (
                       <button className="action-button">Remove Card from Sale</button>
                     ) : (
@@ -1072,18 +1073,23 @@ function PokemonInterface() {
             <div className="your-sales-container">
                 <h3>Your Sales</h3>
                 <div className="your-sales-grid">
-                    {yourSales.map((sale) => (
-                        <div key={sale.tokenId} className="card">
-                            <h3>Name: {sale.name}</h3>
-                            <p>Token ID: {sale.tokenId}</p>
-                            <p>Price: {Number(sale.price) / 1e18} ETH</p> {/* Convert Wei to Ether */}
-                            <p>Seller: {sale.seller}</p>
-                            <p>Primary Type: {sale.primaryType}</p>
-                            <p>Secondary Type: {sale.secondaryType}</p>
-                            <p>Attack: {sale.attack}</p>
-                            <p>Defense: {sale.defense}</p>
-                        </div>
-                    ))}
+                    {yourSales.length > 0 ? (
+                        yourSales.map((sale) => (
+                            <div key={sale.tokenId} className="card">
+                                <h3>Name: {sale.name}</h3>
+                                <p>Token ID: {sale.tokenId}</p>
+                                <p>Price: {Number(sale.price) / 1e18} ETH</p> {/* Convert Wei to Ether */}
+                                <p>Seller: {sale.seller}</p>
+                                <p>Primary Type: {sale.primaryType}</p>
+                                <p>Secondary Type: {sale.secondaryType}</p>
+                                <p>Attack: {Number(sale.attack)}</p>
+                                <p>Defense: {Number(sale.defense)}</p>
+                            </div>
+
+                        ))
+                    ) : (
+                        <p>No sales found on your account.</p> // Message when there are no sales listed by the account
+                    )}
                 </div>
             </div>
 
@@ -1091,19 +1097,24 @@ function PokemonInterface() {
             <div className="all-sales-container">
                 <h3>All Sales</h3>
                 <div className="all-sales-grid">
-                    {allSales.map((sale) => (
-                        <div key={sale.tokenId} className="card">
-                            <h3>Name: {sale.name}</h3>
-                            <p>Token ID: {sale.tokenId}</p>
-                            <p>Price: {Number(sale.price) / 1e18} ETH</p> {/* Convert Wei to Ether */}
-                            <p>Seller: {sale.seller}</p>
-                            <p>Primary Type: {sale.primaryType}</p>
-                            <p>Secondary Type: {sale.secondaryType}</p>
-                            <p>Attack: {sale.attack}</p>
-                            <p>Defense: {sale.defense}</p>
-                            <button className="action-button">Buy Card</button>
-                        </div>
-                    ))}
+                    {allSales.length > 0 ? (
+                        allSales.map((sale) => (
+                            <div key={sale.tokenId} className="card">
+                                <h3>Name: {sale.name}</h3>
+                                <p>Token ID: {sale.tokenId}</p>
+                                <p>Price: {Number(sale.price) / 1e18} ETH</p> {/* Convert Wei to Ether */}
+                                <p>Seller: {sale.seller}</p>
+                                <p>Primary Type: {sale.primaryType}</p>
+                                <p>Secondary Type: {sale.secondaryType}</p>
+                                <p>Attack: {Number(sale.attack)}</p>
+                                <p>Defense: {Number(sale.defense)}</p>
+                                <button className="action-button">Buy Card</button>
+                            </div>
+
+                        ))
+                    ) : (
+                        <p>No active sales found.</p> // Message when there are no active sales
+                    )}
                 </div>
             </div>
           </div>
