@@ -54,25 +54,39 @@ contract PokemonTrade is ReentrancyGuard {
         require(price > 0, "Price must be greater than zero");
         require(nftContract.ownerOf(tokenId) == msg.sender, "You do not own this card");
 
-        sales[tokenId] = Sale(price, msg.sender);
+        // Convert price from ETH to wei (1 ETH = 10^18 wei)
+        uint256 priceInWei = price * 1 ether;
+        
+        sales[tokenId] = Sale(priceInWei, msg.sender);
 
-        emit CardListed(tokenId, price, msg.sender);
+        emit CardListed(tokenId, priceInWei, msg.sender);
     }
 
     function buyCard(uint256 tokenId) external payable nonReentrant {
-        Sale memory sale = sales[tokenId];
+        Sale storage sale = sales[tokenId];
         require(sale.price > 0, "Card is not for sale");
+        require(sale.seller != address(0), "Invalid seller");
         require(msg.value >= sale.price, "Insufficient payment");
 
-        address seller = sale.seller;
+        uint256 price = sale.price;
+        address payable seller = payable(sale.seller);  // Make seller payable explicitly
 
+        // First transfer the payment
+        seller.transfer(price);  // Transfer before deleting the sale
+
+        // Then delete the sale
         delete sales[tokenId];
 
-        // Transfer funds and card
-        payable(seller).transfer(sale.price);
+        // Then transfer the NFT
         nftContract.safeTransferFrom(seller, msg.sender, tokenId);
 
-        emit CardSold(tokenId, msg.sender, sale.price);
+        // Return excess payment if any
+        uint256 excess = msg.value - price;
+        if (excess > 0) {
+            payable(msg.sender).transfer(excess);
+        }
+
+        emit CardSold(tokenId, msg.sender, price);
     }
 
     function removeCardFromSale(uint256 tokenId) external nonReentrant {
@@ -85,22 +99,32 @@ contract PokemonTrade is ReentrancyGuard {
         emit CardRemovedFromSale(tokenId, msg.sender); // Emit an event for logging
     }
 
-    function createAuction(uint256 tokenId, uint256 startingPrice, uint256 duration) external nonReentrant {
-        require(startingPrice > 0, "Starting price must be greater than zero");
-        require(duration > 0, "Duration must be greater than zero");
-        require(nftContract.ownerOf(tokenId) == msg.sender, "You do not own this card");
-        require(!auctions[tokenId].active, "Auction already exists for this token");
+    /// @notice Create an auction for a card
+    /// @param tokenId The ID of the card to auction
+    /// @param minimumPriceInEth Minimum price in ETH (e.g., 1 = 1 ETH)
+    /// @param duration Duration of the auction in seconds
+    /// @param _nftContract The address of the NFT contract
+    function createAuction(uint256 tokenId, uint256 minimumPriceInEth, uint256 duration, IERC721 _nftContract) external {
+        require(_nftContract.ownerOf(tokenId) == msg.sender, "You do not own this card");
+        require(minimumPriceInEth > 0, "Minimum price must be greater than 0");
+        require(duration > 0, "Duration must be greater than 0");
 
+        // Convert price from ETH to wei (1 ETH = 10^18 wei)
+        uint256 priceInWei = minimumPriceInEth * 1 ether;
+
+        // Create auction with default values first
         Auction storage newAuction = auctions[tokenId];
-        newAuction.startingPrice = startingPrice;
-        newAuction.highestBid = 0;
+        
+        // Then set the values
         newAuction.highestBidder = address(0);
         newAuction.seller = msg.sender;
         newAuction.endTime = block.timestamp + duration;
+        newAuction.highestBid = 0;
+        newAuction.startingPrice = priceInWei;
         newAuction.active = true;
-        // The bids array will be initialized empty by default
+        // The bids array will be automatically initialized as empty
 
-        emit AuctionCreated(tokenId, startingPrice, duration, msg.sender);
+        emit AuctionCreated(tokenId, priceInWei, duration, msg.sender);
     }
 
     function placeBid(uint256 tokenId) external payable nonReentrant {
