@@ -33,6 +33,10 @@ async function main() {
     const pokemonTradeAddress = await pokemonTrade.getAddress();
     console.log("PokemonTrade deployed to:", pokemonTradeAddress);
 
+    // Set approval for PokemonTrade to manage all tokens
+    await pokemonCard.setApprovalForAll(pokemonTradeAddress, true);
+    console.log("Approval set for PokemonTrade contract");
+
   } catch (error) {
     console.error("Deployment error:", error);
     console.error("Error details:", error.message);
