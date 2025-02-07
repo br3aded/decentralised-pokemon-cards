@@ -212,27 +212,56 @@ h1 {
 .popup-buttons {
     display: flex; /* Use flexbox for button alignment */
     justify-content: space-between; /* Space between buttons */
-    margin-top: 10px; /* Space above the buttons */
+    margin-top: 20px; /* Space above the buttons */
+    gap: 10px;
+}
+
+.popup-buttons button {
+    flex: 1;
+    padding: 10px;
+    background-color: #FF0000;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.popup-buttons button:hover {
+    background-color: #CC0000;
 }
 
 .listed-for-sale {
-    color: red; /* Set text color to red */
-    border: 1px solid red; /* Set border color to red */
-    padding: 5px; /* Add some padding */
-    border-radius: 4px; /* Optional: round the corners */
-    display: inline-block; /* Make the box fit the text */
-    margin-top: 5px; /* Optional: add some space above */
+  color: red; /* Set text color to red */
+  border: 1px solid red; /* Set border color to red */
+  padding: 5px; /* Add some padding */
+  border-radius: 4px; /* Optional: round the corners */
+  display: inline-block; /* Make the box fit the text */
+  margin-top: 5px; /* Optional: add some space above */
 }
 
 .your-bids-container {
-    border: 1px solid #ddd; /* Light gray border */
-    border-radius: 8px; /* Rounded corners */
-    padding: 20px; /* Inner padding */
-    margin: 20px 0; /* Space above and below */
-    background-color: #f9f9f9; /* Light background color */
+  border: 1px solid #ddd; /* Light gray border */
+  border-radius: 8px; /* Rounded corners */
+  padding: 20px; /* Inner padding */
+  margin: 20px 0; /* Space above and below */
+  background-color: #f9f9f9; /* Light background color */
 }
 
 .popup-content label {
-    display: block; /* Ensures each label is on a new line */
-    margin-bottom: 10px; /* Adds space between fields */
+  display: block; /* Ensures each label is on a new line */
+  margin-bottom: 10px; /* Adds space between fields */
+}
+
+.popup-content input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 5px;
+    box-sizing: border-box;
+}
+
+.popup-content h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
 }

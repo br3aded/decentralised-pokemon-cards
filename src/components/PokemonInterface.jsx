@@ -325,6 +325,18 @@ const PokemonTradeABI = [
                         "type": "bool"
                     },
                     {
+                        "components": [
+                            {
+                                "internalType": "address",
+                                "name": "bidder",
+                                "type": "address"
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "amount",
+                                "type": "uint256"
+                            }
+                        ],
                         "internalType": "struct PokemonTrade.Bid[]",
                         "name": "bids",
                         "type": "tuple[]"
@@ -350,6 +362,19 @@ const PokemonTradeABI = [
         ],
         "stateMutability": "view",
         "type": "function"
+    },
+    {
+      "inputs": [
+          {
+              "internalType": "uint256",
+              "name": "tokenId", 
+              "type": "uint256"
+          }
+      ],
+      "name": "buyCard",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
     },
     // Add other functions as needed
 ];
@@ -939,6 +964,48 @@ function PokemonInterface() {
         margin: 20px 0; /* Space above and below */
         background-color: #f9f9f9; /* Light background color */
     }
+
+    .listed-for-sale, .listed-for-auction {
+        color: red;
+        border: 1px solid red;
+        padding: 5px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-top: 5px;
+        text-align: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .active-auctions-container {
+        border: 1px solid #ddd; /* Light gray border */
+        border-radius: 8px; /* Rounded corners */
+        padding: 20px; /* Inner padding */
+        margin: 10px 0; /* Margin above and below */
+        background-color: #f9f9f9; /* Light background color */
+    }
+
+    .active-auctions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+        padding: 10px;
+    }
+
+    .your-bids-container {
+        border: 1px solid #ddd; /* Light gray border */
+        border-radius: 8px; /* Rounded corners */
+        padding: 20px; /* Inner padding */
+        margin: 10px 0; /* Margin above and below */
+        background-color: #f9f9f9; /* Light background color */
+    }
+
+    .your-bids-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+        padding: 10px;
+    }
   `;
 
   useEffect(() => {
@@ -1280,6 +1347,13 @@ function PokemonInterface() {
     loadActiveAuctions(); // Load active auctions when the component mounts
   }, [tradeContract]); // Run when tradeContract is set
 
+  // Add this helper function at the top of your component
+  const formatBigNumber = (value) => {
+    if (!value) return "0";
+    // Convert BigInt to string, then to number and divide by 1e18
+    return (Number(value.toString()) / 1e18).toString();
+  };
+
   return (
     <div className="container">
       <h1>Pokemon Card NFT Trading</h1>
@@ -1327,18 +1401,19 @@ function PokemonInterface() {
                   <p>Token ID: {card.tokenId}</p>
                   <div className="card-buttons">
                     {card.onSale ? (
-                      <p className="listed-for-sale">Listed for Sale</p>
+                        <p className="listed-for-sale">Listed for Sale</p>
                     ) : (
-                      <>
-                        {activeAuctions.some(auction => auction.tokenId === card.tokenId) ? (
-                          <p className="listed-for-auction">Card listed for auction</p>
-                        ) : (
-                          <>
-                            <button className="action-button" onClick={() => handleSellCard(card)}>Sell Card</button>
-                            <button className="action-button" onClick={() => { setSelectedCard(card); setShowAuctionPopup(true); }}>Create Auction</button>
-                          </>
-                        )}
-                      </>
+                        <>
+                            {activeAuctions.some(auction => auction.tokenId === card.tokenId) || 
+                             yourAuctions.some(auction => auction.tokenId === card.tokenId) ? (
+                                <p className="listed-for-sale">Card on Auction</p>
+                            ) : (
+                                <>
+                                    <button className="action-button" onClick={() => handleSellCard(card)}>Sell Card</button>
+                                    <button className="action-button" onClick={() => { setSelectedCard(card); setShowAuctionPopup(true); }}>Create Auction</button>
+                                </>
+                            )}
+                        </>
                     )}
                   </div>
                 </div>
@@ -1437,9 +1512,9 @@ function PokemonInterface() {
                     yourAuctions.map((auction) => (
                         <div key={auction.tokenId} className="card">
                             <h3>Token ID: {auction.tokenId}</h3>
-                            <p>Starting Price: {ethers.utils.formatEther(auction.startingPrice)} ETH</p>
-                            <p>Highest Bid: {ethers.utils.formatEther(auction.highestBid)} ETH</p>
-                            <p>Ends At: {new Date(auction.endTime * 1000).toLocaleString()}</p>
+                            <p>Starting Price: {formatBigNumber(auction.startingPrice)} ETH</p>
+                            <p>Highest Bid: {formatBigNumber(auction.highestBid)} ETH</p>
+                            <p>Ends At: {new Date(Number(auction.endTime) * 1000).toLocaleString()}</p>
                         </div>
                     ))
                 ) : (
@@ -1448,17 +1523,26 @@ function PokemonInterface() {
               </div>
             </div>
 
+            {/* Your Bids Section */}
+            <div className="your-bids-container">
+                <h3>Your Bids</h3>
+                <div className="your-bids-grid">
+                    {/* This section will be populated with functionality later */}
+                    <p>No active bids found.</p>
+                </div>
+            </div>
+
             {/* Active Auctions Section */}
             <div className="active-auctions-container">
-                <h3>Active Auctions</h3>
+                <h3>All Auctions</h3>
                 <div className="active-auctions-grid">
                     {activeAuctions.length > 0 ? (
                         activeAuctions.map((auction) => (
                             <div key={auction.tokenId} className="card">
                                 <h3>Token ID: {auction.tokenId}</h3>
-                                <p>Starting Price: {ethers.utils.formatEther(auction.startingPrice)} ETH</p>
-                                <p>Highest Bid: {ethers.utils.formatEther(auction.highestBid)} ETH</p>
-                                <p>Ends At: {new Date(auction.endTime * 1000).toLocaleString()}</p>
+                                <p>Starting Price: {formatBigNumber(auction.startingPrice)} ETH</p>
+                                <p>Highest Bid: {formatBigNumber(auction.highestBid)} ETH</p>
+                                <p>Ends At: {new Date(Number(auction.endTime) * 1000).toLocaleString()}</p>
                             </div>
                         ))
                     ) : (
@@ -1470,29 +1554,33 @@ function PokemonInterface() {
           {showAuctionPopup && (
             <div className="popup">
                 <div className="popup-content">
-                    <h2>Create New Auction</h2>
-                    <div>
-                        <label>
-                            Minimum Price (ETH):
-                            <input
-                                type="text"
-                                value={auctionMinimumPrice}
-                                onChange={(e) => setAuctionMinimumPrice(e.target.value)}
-                            />
-                        </label>
+                    <h3>Create Auction for {selectedCard?.name}</h3>
+                    <p>Token ID: {selectedCard?.tokenId}</p>
+                    <label>
+                        Minimum Price (ETH):
+                        <input 
+                            type="number" 
+                            value={auctionMinimumPrice} 
+                            onChange={(e) => setAuctionMinimumPrice(e.target.value)} 
+                            placeholder="Enter minimum price in ETH"
+                            min="0"
+                            step="0.01"
+                        />
+                    </label>
+                    <label>
+                        Duration (seconds):
+                        <input 
+                            type="number" 
+                            value={auctionDuration} 
+                            onChange={(e) => setAuctionDuration(e.target.value)} 
+                            placeholder="Enter duration in seconds"
+                            min="1"
+                        />
+                    </label>
+                    <div className="popup-buttons">
+                        <button className="action-button" onClick={handleCreateAuction}>Create Auction</button>
+                        <button className="action-button" onClick={() => setShowAuctionPopup(false)}>Close</button>
                     </div>
-                    <div>
-                        <label>
-                            Duration (seconds):
-                            <input
-                                type="text"
-                                value={auctionDuration}
-                                onChange={(e) => setAuctionDuration(e.target.value)}
-                            />
-                        </label>
-                    </div>
-                    <button onClick={handleCreateAuction}>Create Auction</button>
-                    <button onClick={() => setShowAuctionPopup(false)}>Cancel</button>
                 </div>
             </div>
           )}
@@ -1503,4 +1591,4 @@ function PokemonInterface() {
   );
 }
 
-export default PokemonInterface; 
+export default PokemonInterface;
