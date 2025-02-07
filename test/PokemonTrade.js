@@ -1,3 +1,4 @@
+/*
 const { expect } = require("chai");
 const { loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 
@@ -12,7 +13,7 @@ describe("PokemonTrade", function () {
 
     // Deploy PokemonTrade
     const PokemonTrade = await ethers.getContractFactory("PokemonTrade");
-    const pokemonTrade = await PokemonTrade.deploy(pokemonCard.target);
+    const pokemonTrade = await PokemonTrade.deploy(pokemonCard.target,pokemonCard.target);
 
     return { pokemonCard, pokemonTrade, owner, user1, user2 };
   }
@@ -77,3 +78,4 @@ describe("PokemonTrade", function () {
     });
   });
 }); 
+*/

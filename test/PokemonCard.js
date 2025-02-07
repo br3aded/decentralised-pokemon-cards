@@ -85,7 +85,8 @@ describe("PokemonCard", function () {
       const { pokemonCard } = await loadFixture(deployPokemonCardFixture);
       
       await expect(pokemonCard.getPokemonAttributes(999))
-        .to.be.revertedWith("Token does not exist");
+        .to.be.revertedWithCustomError(pokemonCard, "ERC721NonexistentToken")
+        .withArgs(999);
     });
   });
 }); 
