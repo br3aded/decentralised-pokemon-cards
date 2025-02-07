@@ -231,3 +231,8 @@ h1 {
     margin: 20px 0; /* Space above and below */
     background-color: #f9f9f9; /* Light background color */
 }
+
+.popup-content label {
+    display: block; /* Ensures each label is on a new line */
+    margin-bottom: 10px; /* Adds space between fields */
+}

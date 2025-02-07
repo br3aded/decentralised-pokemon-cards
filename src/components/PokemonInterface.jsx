@@ -247,11 +247,108 @@ const PokemonTradeABI = [
                 "internalType": "uint256",
                 "name": "tokenId",
                 "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "minimumPriceInEth",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "duration",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "_nftContract",
+                "type": "address"
             }
         ],
-        "name": "buyCard",
+        "name": "createAuction",
         "outputs": [],
-        "stateMutability": "payable",
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getNextTokenId",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            }
+        ],
+        "name": "getAuction",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "startingPrice",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "highestBid",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "highestBidder",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "seller",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "endTime",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "active",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "struct PokemonTrade.Bid[]",
+                        "name": "bids",
+                        "type": "tuple[]"
+                    }
+                ],
+                "internalType": "struct PokemonTrade.Auction",
+                "name": "",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getTotalAuctionTokens",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
         "type": "function"
     },
     // Add other functions as needed
@@ -274,6 +371,11 @@ function PokemonInterface() {
   const [tradeContract, setTradeContract] = useState(null);
   const [yourSales, setYourSales] = useState([]);
   const [allSales, setAllSales] = useState([]);
+  const [activeAuctions, setActiveAuctions] = useState([]);
+  const [showAuctionPopup, setShowAuctionPopup] = useState(false);
+  const [auctionMinimumPrice, setAuctionMinimumPrice] = useState('');
+  const [auctionDuration, setAuctionDuration] = useState('');
+  const [yourAuctions, setYourAuctions] = useState([]);
 
   // Add these event listeners in a useEffect
   useEffect(() => {
@@ -1072,6 +1174,112 @@ function PokemonInterface() {
     }
   }
 
+  // Assuming you have the contract address defined somewhere in your component
+  const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Replace with your actual PokemonCard contract address
+
+  // Function to handle creating an auction
+  async function handleCreateAuction() {
+    if (!selectedCard) {
+        alert("Please select a card to create an auction.");
+        return; // Exit if no card is selected
+    }
+
+    if (!tradeContract) {
+        alert("Trade contract is not initialized. Please connect your wallet.");
+        return;
+    }
+
+    // Validate auction inputs
+    const minPrice = parseFloat(auctionMinimumPrice);
+    const duration = parseInt(auctionDuration, 10);
+
+    if (isNaN(minPrice) || minPrice <= 0) {
+        alert("Please enter a valid minimum price greater than 0 ETH.");
+        return;
+    }
+
+    if (isNaN(duration) || duration <= 0) {
+        alert("Please enter a valid duration in seconds.");
+        return;
+    }
+
+    try {
+        const owner = await contract.ownerOf(selectedCard.tokenId);
+        if (owner.toLowerCase() !== account.toLowerCase()) {
+            alert("You do not own this card.");
+            return; // Exit if the user does not own the card
+        }
+
+        const priceInWei = (minPrice * 10**18).toString(); // Convert ETH to Wei
+        console.log("Token ID:", selectedCard.tokenId);
+        console.log("Price in Wei:", priceInWei);
+        console.log("Duration:", duration);
+
+        // Pass the PokemonCard contract address as the last parameter
+        const tx = await tradeContract.createAuction(selectedCard.tokenId, priceInWei, duration, contractAddress);
+        await tx.wait(); // Wait for the transaction to be mined
+        console.log(`Auction created for Token ID ${selectedCard.tokenId} with a starting price of ${auctionMinimumPrice} ETH for ${auctionDuration} seconds.`);
+        loadActiveAuctions(); // Refresh the active auctions after creation
+        setShowAuctionPopup(false); // Close the popup after creation
+    } catch (error) {
+        console.error("Error creating auction:", error);
+        alert("Failed to create auction. Please check the console for details.");
+    }
+  }
+
+  const loadActiveAuctions = async () => {
+    if (!tradeContract) {
+        console.error("Trade contract is not initialized.");
+        return;
+    }
+
+    try {
+        const yourAuctionsTemp = [];
+        const activeAuctionsTemp = [];
+        const activeAuctionsCount = await tradeContract.getTotalAuctionTokens(); // Get the total number of auction tokens
+
+        for (let tokenId = 0; tokenId < activeAuctionsCount; tokenId++) {
+            try {
+                const auction = await tradeContract.getAuction(tokenId); // Fetch auction details
+                if (auction.active) {
+                    const auctionDetails = {
+                        tokenId,
+                        startingPrice: auction.startingPrice,
+                        highestBid: auction.highestBid,
+                        highestBidder: auction.highestBidder,
+                        seller: auction.seller,
+                        endTime: auction.endTime,
+                    };
+
+                    // Check if the auction belongs to the connected account
+                    if (auction.seller.toLowerCase() === account.toLowerCase()) {
+                        yourAuctionsTemp.push(auctionDetails); // Add to user's auctions
+                    } else {
+                        activeAuctionsTemp.push(auctionDetails); // Add to all active auctions
+                    }
+                }
+            } catch (error) {
+                console.error(`Error fetching auction for token ID ${tokenId}:`, error);
+                // Optionally, you can handle specific cases here, like skipping to the next token ID
+            }
+        }
+
+        setYourAuctions(yourAuctionsTemp); // Update state with user's auctions
+        setActiveAuctions(activeAuctionsTemp); // Update state with all active auctions
+
+        // Log the active auctions for verification
+        console.log("Your Auctions:", yourAuctionsTemp);
+        console.log("All Active Auctions:", activeAuctionsTemp);
+    } catch (error) {
+        console.error("Error loading active auctions:", error);
+    }
+  };
+
+  // Call loadActiveAuctions in useEffect
+  useEffect(() => {
+    loadActiveAuctions(); // Load active auctions when the component mounts
+  }, [tradeContract]); // Run when tradeContract is set
+
   return (
     <div className="container">
       <h1>Pokemon Card NFT Trading</h1>
@@ -1122,8 +1330,14 @@ function PokemonInterface() {
                       <p className="listed-for-sale">Listed for Sale</p>
                     ) : (
                       <>
-                        <button className="action-button" onClick={() => handleSellCard(card)}>Sell Card</button>
-                        <button className="action-button">Auction Card</button>
+                        {activeAuctions.some(auction => auction.tokenId === card.tokenId) ? (
+                          <p className="listed-for-auction">Card listed for auction</p>
+                        ) : (
+                          <>
+                            <button className="action-button" onClick={() => handleSellCard(card)}>Sell Card</button>
+                            <button className="action-button" onClick={() => { setSelectedCard(card); setShowAuctionPopup(true); }}>Create Auction</button>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
@@ -1212,33 +1426,76 @@ function PokemonInterface() {
           <div className="auctions-container">
             <div className="header-container">
               <h2>Active Auctions</h2>
-              <button className="refresh-button">Refresh</button>
+              <button className="refresh-button" onClick={loadActiveAuctions}>Refresh</button>
             </div>
             
             {/* Your Auctions Section */}
             <div className="your-auctions-container">
               <h3>Your Auctions</h3>
               <div className="your-auctions-grid">
-                <p>No auctions found for your account.</p>
+                {yourAuctions.length > 0 ? (
+                    yourAuctions.map((auction) => (
+                        <div key={auction.tokenId} className="card">
+                            <h3>Token ID: {auction.tokenId}</h3>
+                            <p>Starting Price: {ethers.utils.formatEther(auction.startingPrice)} ETH</p>
+                            <p>Highest Bid: {ethers.utils.formatEther(auction.highestBid)} ETH</p>
+                            <p>Ends At: {new Date(auction.endTime * 1000).toLocaleString()}</p>
+                        </div>
+                    ))
+                ) : (
+                    <p>No auctions found for your account.</p>
+                )}
               </div>
             </div>
 
-            {/* Your Bids Section */}
-            <div className="your-bids-container">
-              <h3>Your Bids</h3>
-              <div className="your-bids-grid">
-                <p>No bids placed yet.</p> {/* Placeholder text */}
-              </div>
-            </div>
-
-            {/* All Auctions Section */}
-            <div className="all-auctions-container">
-              <h3>All Auctions</h3>
-              <div className="all-auctions-grid">
-                <p>No active auctions found.</p>
-              </div>
+            {/* Active Auctions Section */}
+            <div className="active-auctions-container">
+                <h3>Active Auctions</h3>
+                <div className="active-auctions-grid">
+                    {activeAuctions.length > 0 ? (
+                        activeAuctions.map((auction) => (
+                            <div key={auction.tokenId} className="card">
+                                <h3>Token ID: {auction.tokenId}</h3>
+                                <p>Starting Price: {ethers.utils.formatEther(auction.startingPrice)} ETH</p>
+                                <p>Highest Bid: {ethers.utils.formatEther(auction.highestBid)} ETH</p>
+                                <p>Ends At: {new Date(auction.endTime * 1000).toLocaleString()}</p>
+                            </div>
+                        ))
+                    ) : (
+                        <p>No active auctions found.</p>
+                    )}
+                </div>
             </div>
           </div>
+          {showAuctionPopup && (
+            <div className="popup">
+                <div className="popup-content">
+                    <h2>Create New Auction</h2>
+                    <div>
+                        <label>
+                            Minimum Price (ETH):
+                            <input
+                                type="text"
+                                value={auctionMinimumPrice}
+                                onChange={(e) => setAuctionMinimumPrice(e.target.value)}
+                            />
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            Duration (seconds):
+                            <input
+                                type="text"
+                                value={auctionDuration}
+                                onChange={(e) => setAuctionDuration(e.target.value)}
+                            />
+                        </label>
+                    </div>
+                    <button onClick={handleCreateAuction}>Create Auction</button>
+                    <button onClick={() => setShowAuctionPopup(false)}>Cancel</button>
+                </div>
+            </div>
+          )}
         </div>
       )}
       <style>{styles}</style>

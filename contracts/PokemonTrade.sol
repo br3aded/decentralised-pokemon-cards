@@ -36,6 +36,8 @@ contract PokemonTrade is ReentrancyGuard {
     IPokemonCard public nftContract;
     PokemonCard public pokemonCard;
 
+    uint256 public totalAuctionTokens; // Counter for total auction tokens
+
     event CardListed(uint256 tokenId, uint256 price, address seller);
     event CardSold(uint256 tokenId, address buyer, uint256 price);
     event CardRemovedFromSale(uint256 tokenId, address seller);
@@ -123,6 +125,9 @@ contract PokemonTrade is ReentrancyGuard {
         newAuction.startingPrice = priceInWei;
         newAuction.active = true;
         // The bids array will be automatically initialized as empty
+
+        // Increment the total auction tokens counter
+        totalAuctionTokens++;
 
         emit AuctionCreated(tokenId, priceInWei, duration, msg.sender);
     }
@@ -220,5 +225,12 @@ contract PokemonTrade is ReentrancyGuard {
         return sales[tokenId];
     }
 
+    function getAuction(uint256 tokenId) external view returns (Auction memory) {
+        require(auctions[tokenId].active, "Auction does not exist or has ended");
+        return auctions[tokenId];
+    }
 
+    function getTotalAuctionTokens() external view returns (uint256) {
+        return totalAuctionTokens;
+    }
 }
