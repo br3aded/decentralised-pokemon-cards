@@ -241,6 +241,19 @@ const PokemonTradeABI = [
         "stateMutability": "nonpayable",
         "type": "function"
     },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            }
+        ],
+        "name": "buyCard",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
     // Add other functions as needed
 ];
 
@@ -881,8 +894,6 @@ function PokemonInterface() {
     }
 
     try {
-        // Convert price to Wei
-        const priceInWei = (parseFloat(price) * 10**18).toString(); // Convert ETH to Wei
 
         // Check if the user is the owner of the card using the PokemonCard contract
         const owner = await contract.ownerOf(selectedCard.tokenId);
@@ -898,7 +909,7 @@ function PokemonInterface() {
         console.log(`Attempting to list card with Token ID: ${selectedCard.tokenId} for ${price} ETH`);
 
         // Call the listCard function from the trade contract
-        const tx = await tradeContract.listCard(selectedCard.tokenId, priceInWei);
+        const tx = await tradeContract.listCard(selectedCard.tokenId, price);
         const receipt = await tx.wait(); // Wait for the transaction to be mined
 
         // Log success message after the transaction is confirmed
@@ -1013,6 +1024,43 @@ function PokemonInterface() {
     } catch (error) {
         console.error("Error removing card from sale:", error);
         alert("Failed to remove the card from sale. Please check the console for details.");
+    }
+  }
+
+  // Function to handle buying a card
+  async function handleBuyCard(tokenId) {
+    if (!tradeContract) {
+        alert("Trade contract is not initialized. Please connect your wallet.");
+        return;
+    }
+
+    try {
+        console.log("Retrieving sale information for token ID:", tokenId);
+        const sale = await tradeContract.getSale(tokenId);
+        console.log("Sale details:", sale);
+        
+        const priceInWei = sale.price; // Get the price in Wei
+        console.log(`Attempting to buy card with Token ID: ${tokenId} for ${priceInWei} Wei`);
+
+        console.log("Transaction details:", {
+            tokenId,
+            value: priceInWei,
+            gasLimit: 1000000
+        });
+
+        const tx = await tradeContract.buyCard(tokenId, {
+            value: priceInWei, // Send the price as value
+            gasLimit: 1000000 // Increase gas limit
+        });
+
+        await tx.wait(); // Wait for the transaction to be mined
+        console.log(`Card with Token ID ${tokenId} purchased successfully!`);
+
+        // Optionally, refresh the sales data after purchase
+        loadActiveSales();
+    } catch (error) {
+        console.error("Error purchasing card:", error);
+        alert("Failed to purchase the card. Please check the console for details.");
     }
   }
 
@@ -1143,13 +1191,8 @@ function PokemonInterface() {
                                 <p>Token ID: {sale.tokenId}</p>
                                 <p>Price: {Number(sale.price) / 1e18} ETH</p> {/* Convert Wei to Ether */}
                                 <p>Seller: {sale.seller}</p>
-                                <p>Primary Type: {sale.primaryType}</p>
-                                <p>Secondary Type: {sale.secondaryType}</p>
-                                <p>Attack: {Number(sale.attack)}</p>
-                                <p>Defense: {Number(sale.defense)}</p>
-                                <button className="action-button">Buy Card</button>
+                                <button className="action-button" onClick={() => handleBuyCard(sale.tokenId)}>Buy Card</button>
                             </div>
-
                         ))
                     ) : (
                         <p>No active sales found.</p> // Message when there are no active sales
