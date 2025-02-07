@@ -223,3 +223,11 @@ h1 {
     display: inline-block; /* Make the box fit the text */
     margin-top: 5px; /* Optional: add some space above */
 }
+
+.your-bids-container {
+    border: 1px solid #ddd; /* Light gray border */
+    border-radius: 8px; /* Rounded corners */
+    padding: 20px; /* Inner padding */
+    margin: 20px 0; /* Space above and below */
+    background-color: #f9f9f9; /* Light background color */
+}

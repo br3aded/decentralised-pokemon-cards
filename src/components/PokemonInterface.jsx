@@ -829,6 +829,14 @@ function PokemonInterface() {
         display: inline-block; /* Make the box fit the text */
         margin-top: 5px; /* Optional: add some space above */
     }
+
+    .your-bids-container {
+        border: 1px solid #ddd; /* Light gray border */
+        border-radius: 8px; /* Rounded corners */
+        padding: 20px; /* Inner padding */
+        margin: 20px 0; /* Space above and below */
+        background-color: #f9f9f9; /* Light background color */
+    }
   `;
 
   useEffect(() => {
@@ -1212,6 +1220,14 @@ function PokemonInterface() {
               <h3>Your Auctions</h3>
               <div className="your-auctions-grid">
                 <p>No auctions found for your account.</p>
+              </div>
+            </div>
+
+            {/* Your Bids Section */}
+            <div className="your-bids-container">
+              <h3>Your Bids</h3>
+              <div className="your-bids-grid">
+                <p>No bids placed yet.</p> {/* Placeholder text */}
               </div>
             </div>
 
