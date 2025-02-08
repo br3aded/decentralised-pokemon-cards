@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 interface IPokemonCard {
     function safeTransferFrom(address from, address to, uint256 tokenId) external;
     function ownerOf(uint256 tokenId) external view returns (address);
+    function approve(address to, uint256 tokenId) external;
 }
 
 contract PokemonTrade is ReentrancyGuard {
@@ -105,15 +106,17 @@ contract PokemonTrade is ReentrancyGuard {
     /// @param tokenId The ID of the card to auction
     /// @param minimumPriceInEth Minimum price in ETH (e.g., 1 = 1 ETH)
     /// @param endTime Exact end time in Unix timestamp (must be on minute boundary)
-    /// @param _nftContract The address of the NFT contract
-    function createAuction(uint256 tokenId, uint256 minimumPriceInEth, uint256 endTime, IERC721 _nftContract) external {
-        require(_nftContract.ownerOf(tokenId) == msg.sender, "You do not own this card");
+    function createAuction(uint256 tokenId, uint256 minimumPriceInEth, uint256 endTime) external {
+        require(nftContract.ownerOf(tokenId) == msg.sender, "You do not own this card");
         require(minimumPriceInEth > 0, "Minimum price must be greater than 0");
         require(endTime > block.timestamp, "End time must be in the future");
         require(endTime % 60 == 0, "End time must be at the start of a minute");
 
         // Convert price from ETH to wei
         uint256 priceInWei = minimumPriceInEth * 1 ether;
+
+        // Transfer the NFT to this contract immediately
+        nftContract.safeTransferFrom(msg.sender, address(this), tokenId);
 
         Auction storage newAuction = auctions[tokenId];
         newAuction.highestBidder = address(0);
@@ -153,8 +156,8 @@ contract PokemonTrade is ReentrancyGuard {
 
         if (auction.highestBidder != address(0)) {
             // Case: Auction ended with at least one bid
-            // Transfer the NFT to the winner
-            nftContract.safeTransferFrom(auction.seller, auction.highestBidder, tokenId);
+            // Transfer the NFT from contract to winner
+            nftContract.safeTransferFrom(address(this), auction.highestBidder, tokenId);
             // Transfer the highest bid to the seller
             payable(auction.seller).transfer(auction.highestBid);
 
@@ -168,7 +171,8 @@ contract PokemonTrade is ReentrancyGuard {
 
             emit AuctionEnded(tokenId, auction.highestBidder, auction.highestBid);
         } else {
-            // Case: Auction ended with no bids
+            // Case: Auction ended with no bids, return NFT to seller
+            nftContract.safeTransferFrom(address(this), auction.seller, tokenId);
             emit AuctionEnded(tokenId, address(0), 0);
         }
 

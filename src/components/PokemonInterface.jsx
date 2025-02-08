@@ -175,6 +175,24 @@ const PokemonCardABI = [
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [
+        {
+            "internalType": "address",
+            "name": "to",
+            "type": "address"
+        },
+        {
+            "internalType": "uint256",
+            "name": "tokenId",
+            "type": "uint256"
+        }
+    ],
+    "name": "approve",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   }
 ];
 
@@ -242,32 +260,27 @@ const PokemonTradeABI = [
         "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256"
-            },
-            {
-                "internalType": "uint256",
-                "name": "minimumPriceInEth",
-                "type": "uint256"
-            },
-            {
-                "internalType": "uint256",
-                "name": "endTime",
-                "type": "uint256"
-            },
-            {
-                "internalType": "address",
-                "name": "_nftContract",
-                "type": "address"
-            }
-        ],
-        "name": "createAuction",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+      "inputs": [
+          {
+              "internalType": "uint256",
+              "name": "tokenId",
+              "type": "uint256"
+          },
+          {
+              "internalType": "uint256",
+              "name": "minimumPriceInEth",
+              "type": "uint256"
+          },
+          {
+              "internalType": "uint256",
+              "name": "endTime",
+              "type": "uint256"
+          }
+      ],
+      "name": "createAuction",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
         "inputs": [],
@@ -389,6 +402,24 @@ const PokemonTradeABI = [
       "stateMutability": "nonpayable",
       "type": "function"
     },
+    {
+      "inputs": [
+          {
+              "internalType": "address",
+              "name": "to",
+              "type": "address"
+          },
+          {
+              "internalType": "uint256",
+              "name": "tokenId",
+              "type": "uint256"
+          }
+      ],
+      "name": "approve",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  }
     // Add other functions as needed
 ];
 
@@ -1270,9 +1301,6 @@ function PokemonInterface() {
     }
   }
 
-  // Assuming you have the contract address defined somewhere in your component
-  const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Replace with your actual PokemonCard contract address
-
   // Function to handle creating an auction
   async function handleCreateAuction() {
     if (!selectedCard || !tradeContract) return;
@@ -1299,25 +1327,30 @@ function PokemonInterface() {
         // Convert end time to Unix timestamp (seconds)
         const endTimestamp = Math.floor(new Date(auctionEndTime).getTime() / 1000);
         const currentTime = Math.floor(Date.now() / 1000);
+        const priceInWei = BigInt(Math.floor(parseFloat(auctionMinimumPrice) * 1e18));
 
         if (endTimestamp <= currentTime) {
             alert("End time must be in the future.");
             return;
         }
 
-        
+        // First, approve the trade contract to transfer the NFT
+        console.log("Approving NFT transfer...");
+        const approveTx = await contract.approve(tradeContract.target, selectedCard.tokenId);
+        await approveTx.wait();
+        console.log("NFT transfer approved");
+
         console.log("Creating auction with parameters:", {
             tokenId: selectedCard.tokenId,
-            priceInWei: auctionMinimumPrice,
+            priceInWei: priceInWei.toString(),
             endTimestamp,
-            contractAddress
         });
 
         const tx = await tradeContract.createAuction(
             selectedCard.tokenId,
-            auctionMinimumPrice,
+            priceInWei,
             endTimestamp,
-            contractAddress
+            { gasLimit: 500000 }
         );
 
         await tx.wait();
@@ -1395,38 +1428,49 @@ function PokemonInterface() {
 const checkEndingAuctions = async () => {
     try {
         console.log("Checking for ending auctions...");
-        const currentTime = Math.floor(Date.now() / 1000);
+        // Get fresh data first
+        await loadActiveAuctions();
         
-        // Create a combined list of all auctions
+        const currentTime = Math.floor(Date.now() / 1000);
         const allAuctionsToCheck = [...yourAuctions, ...activeAuctions];
         
-        // Exit early if there are no auctions to check
         if (allAuctionsToCheck.length === 0) {
-          console.log("No active auctions to check");
-          return;
+            console.log("No active auctions to check");
+            return;
         }
-        // Check each auction
+
+        // Keep track of ended auctions
+        const endedAuctions = [];
+
         for (const auction of allAuctionsToCheck) {
             try {
-                // Get fresh auction data from contract
                 const currentAuction = await tradeContract.getAuction(auction.tokenId);
                 
-                // Only try to end if the auction is still active and time has passed
                 if (currentAuction.active && currentTime >= Number(currentAuction.endTime)) {
                     console.log(`Attempting to end auction for token ${auction.tokenId}`);
-                    console.log(`Current time: ${currentTime}, End time: ${Number(currentAuction.endTime)}`);
                     
                     const tx = await tradeContract.endAuction(auction.tokenId);
                     await tx.wait();
+                    
+                    endedAuctions.push(auction.tokenId);
                     console.log(`Successfully ended auction for token ${auction.tokenId}`);
                 }
             } catch (error) {
-                console.error(`Error processing auction ${auction.tokenId}:`, error);
+                if (!error.reason?.includes("Auction does not exist")) {
+                    console.error(`Error processing auction ${auction.tokenId}:`, error);
+                }
             }
         }
 
-        // Refresh the auctions lists
-        await loadActiveAuctions();
+        if (endedAuctions.length > 0) {
+            // Update the local state to remove ended auctions
+            setYourAuctions(prev => prev.filter(auction => !endedAuctions.includes(auction.tokenId)));
+            setActiveAuctions(prev => prev.filter(auction => !endedAuctions.includes(auction.tokenId)));
+            
+            // Refresh the full auction list
+            await loadActiveAuctions();
+            console.log(`Removed ${endedAuctions.length} ended auctions`);
+        }
         
     } catch (error) {
         console.error("Error in checkEndingAuctions:", error);
