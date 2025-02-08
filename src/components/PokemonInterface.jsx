@@ -255,7 +255,7 @@ const PokemonTradeABI = [
             },
             {
                 "internalType": "uint256",
-                "name": "duration",
+                "name": "endTime",
                 "type": "uint256"
             },
             {
@@ -376,6 +376,19 @@ const PokemonTradeABI = [
       "stateMutability": "payable",
       "type": "function"
     },
+    {
+      "inputs": [
+          {
+              "internalType": "uint256",
+              "name": "tokenId",
+              "type": "uint256"
+          }
+      ],
+      "name": "endAuction",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
     // Add other functions as needed
 ];
 
@@ -401,6 +414,7 @@ function PokemonInterface() {
   const [auctionMinimumPrice, setAuctionMinimumPrice] = useState('');
   const [auctionDuration, setAuctionDuration] = useState('');
   const [yourAuctions, setYourAuctions] = useState([]);
+  const [auctionEndTime, setAuctionEndTime] = useState('');
 
   // Add these event listeners in a useEffect
   useEffect(() => {
@@ -1006,6 +1020,21 @@ function PokemonInterface() {
         gap: 20px;
         padding: 10px;
     }
+
+    .popup-content input[type="datetime-local"] {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    .popup-content label {
+        display: block;
+        margin-bottom: 15px;
+    }
   `;
 
   useEffect(() => {
@@ -1246,27 +1275,17 @@ function PokemonInterface() {
 
   // Function to handle creating an auction
   async function handleCreateAuction() {
-    if (!selectedCard) {
-        alert("Please select a card to create an auction.");
-        return; // Exit if no card is selected
-    }
+    if (!selectedCard || !tradeContract) return;
 
-    if (!tradeContract) {
-        alert("Trade contract is not initialized. Please connect your wallet.");
-        return;
-    }
-
-    // Validate auction inputs
+    // Validate inputs
     const minPrice = parseFloat(auctionMinimumPrice);
-    const duration = parseInt(auctionDuration, 10);
-
     if (isNaN(minPrice) || minPrice <= 0) {
         alert("Please enter a valid minimum price greater than 0 ETH.");
         return;
     }
 
-    if (isNaN(duration) || duration <= 0) {
-        alert("Please enter a valid duration in seconds.");
+    if (!auctionEndTime) {
+        alert("Please select an end time.");
         return;
     }
 
@@ -1274,25 +1293,43 @@ function PokemonInterface() {
         const owner = await contract.ownerOf(selectedCard.tokenId);
         if (owner.toLowerCase() !== account.toLowerCase()) {
             alert("You do not own this card.");
-            return; // Exit if the user does not own the card
+            return;
         }
 
-        const priceInWei = (minPrice * 10**18).toString(); // Convert ETH to Wei
-        console.log("Token ID:", selectedCard.tokenId);
-        console.log("Price in Wei:", priceInWei);
-        console.log("Duration:", duration);
+        // Convert end time to Unix timestamp (seconds)
+        const endTimestamp = Math.floor(new Date(auctionEndTime).getTime() / 1000);
+        const currentTime = Math.floor(Date.now() / 1000);
 
-        // Pass the PokemonCard contract address as the last parameter
-        const tx = await tradeContract.createAuction(selectedCard.tokenId, priceInWei, duration, contractAddress);
-        await tx.wait(); // Wait for the transaction to be mined
-        console.log(`Auction created for Token ID ${selectedCard.tokenId} with a starting price of ${auctionMinimumPrice} ETH for ${auctionDuration} seconds.`);
-        loadActiveAuctions(); // Refresh the active auctions after creation
-        setShowAuctionPopup(false); // Close the popup after creation
+        if (endTimestamp <= currentTime) {
+            alert("End time must be in the future.");
+            return;
+        }
+
+        
+        console.log("Creating auction with parameters:", {
+            tokenId: selectedCard.tokenId,
+            priceInWei: auctionMinimumPrice,
+            endTimestamp,
+            contractAddress
+        });
+
+        const tx = await tradeContract.createAuction(
+            selectedCard.tokenId,
+            auctionMinimumPrice,
+            endTimestamp,
+            contractAddress
+        );
+
+        await tx.wait();
+        console.log(`Auction created for Token ID ${selectedCard.tokenId} with a starting price of ${auctionMinimumPrice} ETH, ending at ${new Date(endTimestamp * 1000).toLocaleString()}`);
+        
+        loadActiveAuctions();
+        setShowAuctionPopup(false);
     } catch (error) {
         console.error("Error creating auction:", error);
         alert("Failed to create auction. Please check the console for details.");
     }
-  }
+}
 
   const loadActiveAuctions = async () => {
     if (!tradeContract) {
@@ -1353,6 +1390,78 @@ function PokemonInterface() {
     // Convert BigInt to string, then to number and divide by 1e18
     return (Number(value.toString()) / 1e18).toString();
   };
+
+  // Update the checkEndingAuctions function
+const checkEndingAuctions = async () => {
+    try {
+        console.log("Checking for ending auctions...");
+        const currentTime = Math.floor(Date.now() / 1000);
+        
+        // Create a combined list of all auctions
+        const allAuctionsToCheck = [...yourAuctions, ...activeAuctions];
+        
+        // Exit early if there are no auctions to check
+        if (allAuctionsToCheck.length === 0) {
+          console.log("No active auctions to check");
+          return;
+        }
+        // Check each auction
+        for (const auction of allAuctionsToCheck) {
+            try {
+                // Get fresh auction data from contract
+                const currentAuction = await tradeContract.getAuction(auction.tokenId);
+                
+                // Only try to end if the auction is still active and time has passed
+                if (currentAuction.active && currentTime >= Number(currentAuction.endTime)) {
+                    console.log(`Attempting to end auction for token ${auction.tokenId}`);
+                    console.log(`Current time: ${currentTime}, End time: ${Number(currentAuction.endTime)}`);
+                    
+                    const tx = await tradeContract.endAuction(auction.tokenId);
+                    await tx.wait();
+                    console.log(`Successfully ended auction for token ${auction.tokenId}`);
+                }
+            } catch (error) {
+                console.error(`Error processing auction ${auction.tokenId}:`, error);
+            }
+        }
+
+        // Refresh the auctions lists
+        await loadActiveAuctions();
+        
+    } catch (error) {
+        console.error("Error in checkEndingAuctions:", error);
+    }
+};
+
+// Update the useEffect for polling
+useEffect(() => {
+    if (tradeContract) {
+        // Initial check
+        checkEndingAuctions();
+
+        // Calculate delay until the start of the next minute
+        const now = new Date();
+        const delay = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+        
+        console.log(`Setting up auction check to start in ${delay}ms`);
+        
+        const timer = setTimeout(() => {
+            checkEndingAuctions();
+            const interval = setInterval(checkEndingAuctions, 60000);
+            console.log("Auction checking interval established");
+            
+            return () => {
+                clearInterval(interval);
+                console.log("Auction checking interval cleared");
+            };
+        }, delay);
+
+        return () => {
+            clearTimeout(timer);
+            console.log("Auction checking timer cleared");
+        };
+    }
+}, [tradeContract]);
 
   return (
     <div className="container">
@@ -1568,13 +1677,18 @@ function PokemonInterface() {
                         />
                     </label>
                     <label>
-                        Duration (seconds):
+                        End Time:
                         <input 
-                            type="number" 
-                            value={auctionDuration} 
-                            onChange={(e) => setAuctionDuration(e.target.value)} 
-                            placeholder="Enter duration in seconds"
-                            min="1"
+                            type="datetime-local"
+                            value={auctionEndTime}
+                            onChange={(e) => {
+                                // Round to nearest minute
+                                const date = new Date(e.target.value);
+                                date.setSeconds(0, 0);
+                                setAuctionEndTime(date.toISOString().slice(0, 16));
+                            }}
+                            min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                            step="60"
                         />
                     </label>
                     <div className="popup-buttons">

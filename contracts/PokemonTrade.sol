@@ -104,32 +104,28 @@ contract PokemonTrade is ReentrancyGuard {
     /// @notice Create an auction for a card
     /// @param tokenId The ID of the card to auction
     /// @param minimumPriceInEth Minimum price in ETH (e.g., 1 = 1 ETH)
-    /// @param duration Duration of the auction in seconds
+    /// @param endTime Exact end time in Unix timestamp (must be on minute boundary)
     /// @param _nftContract The address of the NFT contract
-    function createAuction(uint256 tokenId, uint256 minimumPriceInEth, uint256 duration, IERC721 _nftContract) external {
+    function createAuction(uint256 tokenId, uint256 minimumPriceInEth, uint256 endTime, IERC721 _nftContract) external {
         require(_nftContract.ownerOf(tokenId) == msg.sender, "You do not own this card");
         require(minimumPriceInEth > 0, "Minimum price must be greater than 0");
-        require(duration > 0, "Duration must be greater than 0");
+        require(endTime > block.timestamp, "End time must be in the future");
+        require(endTime % 60 == 0, "End time must be at the start of a minute");
 
-        // Convert price from ETH to wei (1 ETH = 10^18 wei)
+        // Convert price from ETH to wei
         uint256 priceInWei = minimumPriceInEth * 1 ether;
 
-        // Create auction with default values first
         Auction storage newAuction = auctions[tokenId];
-        
-        // Then set the values
         newAuction.highestBidder = address(0);
         newAuction.seller = msg.sender;
-        newAuction.endTime = block.timestamp + duration;
+        newAuction.endTime = endTime;
         newAuction.highestBid = 0;
         newAuction.startingPrice = priceInWei;
         newAuction.active = true;
-        // The bids array will be automatically initialized as empty
 
-        // Increment the total auction tokens counter
         totalAuctionTokens++;
 
-        emit AuctionCreated(tokenId, priceInWei, duration, msg.sender);
+        emit AuctionCreated(tokenId, priceInWei, endTime, msg.sender);
     }
 
     function placeBid(uint256 tokenId) external payable nonReentrant {
@@ -156,6 +152,7 @@ contract PokemonTrade is ReentrancyGuard {
         auction.active = false;
 
         if (auction.highestBidder != address(0)) {
+            // Case: Auction ended with at least one bid
             // Transfer the NFT to the winner
             nftContract.safeTransferFrom(auction.seller, auction.highestBidder, tokenId);
             // Transfer the highest bid to the seller
@@ -170,7 +167,14 @@ contract PokemonTrade is ReentrancyGuard {
             }
 
             emit AuctionEnded(tokenId, auction.highestBidder, auction.highestBid);
+        } else {
+            // Case: Auction ended with no bids
+            emit AuctionEnded(tokenId, address(0), 0);
         }
+
+        // Clean up by deleting the auction
+        delete auctions[tokenId];
+        totalAuctionTokens--;
     }
 
     function cancelAuction(uint256 tokenId) external nonReentrant {
