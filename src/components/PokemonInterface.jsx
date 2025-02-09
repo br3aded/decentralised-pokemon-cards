@@ -1398,56 +1398,64 @@ function PokemonInterface() {
     try {
         const yourAuctionsTemp = [];
         const activeAuctionsTemp = [];
-        const totalAuctionTokens = await tradeContract.getTotalAuctionTokens();
+        const totalTokens = await contract.getNextTokenId(); // Use total tokens instead of auction tokens
 
-        console.log("Total auction tokens:", totalAuctionTokens.toString());
+        console.log("Checking auctions up to token:", totalTokens.toString());
 
         // Get all auctions efficiently
         const auctionPromises = [];
-        for (let tokenId = 0; tokenId < totalAuctionTokens; tokenId++) {
-            auctionPromises.push(tradeContract.getAuction(tokenId)
-                .then(async (auction) => {
-                    if (auction.active) {
-                        try {
-                            const cardAttributes = await contract.getPokemonAttributes(tokenId);
-                            
-                            const auctionDetails = {
-                                tokenId,
-                                startingPrice: Number(auction.startingPrice.toString()) / 1e18,
-                                highestBid: auction.highestBid,
-                                highestBidder: auction.highestBidder,
-                                seller: auction.seller,
-                                endTime: auction.endTime,
-                                name: cardAttributes.name,
-                                primaryType: cardAttributes.primaryType,
-                                secondaryType: cardAttributes.secondaryType,
-                                attack: cardAttributes.attack,
-                                defense: cardAttributes.defense
-                            };
+        for (let tokenId = 0; tokenId < totalTokens; tokenId++) {
+            auctionPromises.push(
+                tradeContract.getAuction(tokenId)
+                    .then(async (auction) => {
+                        // Only process if the auction exists and is active
+                        if (auction && auction.seller !== '0x0000000000000000000000000000000000000000') {
+                            try {
+                                const cardAttributes = await contract.getPokemonAttributes(tokenId);
+                                
+                                const auctionDetails = {
+                                    tokenId,
+                                    startingPrice: Number(auction.startingPrice.toString()) / 1e18,
+                                    highestBid: auction.highestBid,
+                                    highestBidder: auction.highestBidder,
+                                    seller: auction.seller,
+                                    endTime: auction.endTime,
+                                    active: auction.active,
+                                    name: cardAttributes.name,
+                                    primaryType: cardAttributes.primaryType,
+                                    secondaryType: cardAttributes.secondaryType,
+                                    attack: cardAttributes.attack,
+                                    defense: cardAttributes.defense
+                                };
 
-                            return { success: true, auction: auctionDetails };
-                        } catch (error) {
-                            console.log(`Error getting attributes for token ${tokenId}:`, error);
-                            return { success: false };
+                                return { success: true, auction: auctionDetails };
+                            } catch (error) {
+                                console.log(`Error getting attributes for token ${tokenId}:`, error);
+                                return { success: false };
+                            }
                         }
-                    }
-                    return { success: false };
-                })
-                .catch(() => ({ success: false }))
+                        return { success: false };
+                    })
+                    .catch((error) => {
+                        console.log(`No auction for token ${tokenId}:`, error);
+                        return { success: false };
+                    })
             );
         }
 
-        // Wait for all promises to resolve
         const results = await Promise.allSettled(auctionPromises);
 
         // Process results
         results.forEach((result) => {
             if (result.status === 'fulfilled' && result.value.success) {
                 const auctionDetails = result.value.auction;
-                if (auctionDetails.seller.toLowerCase() === account.toLowerCase()) {
-                    yourAuctionsTemp.push(auctionDetails);
-                } else {
-                    activeAuctionsTemp.push(auctionDetails);
+                // Only add to lists if auction is active
+                if (auctionDetails.active) {
+                    if (auctionDetails.seller.toLowerCase() === account.toLowerCase()) {
+                        yourAuctionsTemp.push(auctionDetails);
+                    } else {
+                        activeAuctionsTemp.push(auctionDetails);
+                    }
                 }
             }
         });
