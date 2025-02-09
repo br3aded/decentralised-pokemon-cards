@@ -487,6 +487,7 @@ function PokemonInterface() {
   const [showBidPopup, setShowBidPopup] = useState(false);
   const [bidAmount, setBidAmount] = useState('');
   const [selectedAuction, setSelectedAuction] = useState(null);
+  const [yourBids, setYourBids] = useState([]);
 
   // Add these event listeners in a useEffect
   useEffect(() => {
@@ -1414,17 +1415,13 @@ function PokemonInterface() {
     try {
         const yourAuctionsTemp = [];
         const activeAuctionsTemp = [];
-        const totalTokens = await contract.getNextTokenId(); // Use total tokens instead of auction tokens
+        const totalTokens = await contract.getNextTokenId();
 
-        console.log("Checking auctions up to token:", totalTokens.toString());
-
-        // Get all auctions efficiently
         const auctionPromises = [];
         for (let tokenId = 0; tokenId < totalTokens; tokenId++) {
             auctionPromises.push(
                 tradeContract.getAuction(tokenId)
                     .then(async (auction) => {
-                        // Only process if the auction exists and is active
                         if (auction && auction.seller !== '0x0000000000000000000000000000000000000000') {
                             try {
                                 const cardAttributes = await contract.getPokemonAttributes(tokenId);
@@ -1438,10 +1435,7 @@ function PokemonInterface() {
                                     endTime: auction.endTime,
                                     active: auction.active,
                                     name: cardAttributes.name,
-                                    primaryType: cardAttributes.primaryType,
-                                    secondaryType: cardAttributes.secondaryType,
-                                    attack: cardAttributes.attack,
-                                    defense: cardAttributes.defense
+                                    bids: auction.bids // Add this to check for user's bids
                                 };
 
                                 return { success: true, auction: auctionDetails };
@@ -1461,23 +1455,23 @@ function PokemonInterface() {
 
         const results = await Promise.allSettled(auctionPromises);
 
-        // Process results
         results.forEach((result) => {
             if (result.status === 'fulfilled' && result.value.success) {
                 const auctionDetails = result.value.auction;
-                // Only add to lists if auction is active
                 if (auctionDetails.active) {
+                    // Check if this is your auction
                     if (auctionDetails.seller.toLowerCase() === account.toLowerCase()) {
                         yourAuctionsTemp.push(auctionDetails);
-                    } else {
+                    } 
+                    // If it's not your auction and you haven't bid on it, add to active auctions
+                    else if (!auctionDetails.bids.some(bid => 
+                        bid.bidder.toLowerCase() === account.toLowerCase()
+                    )) {
                         activeAuctionsTemp.push(auctionDetails);
                     }
                 }
             }
         });
-
-        console.log("Your Auctions:", yourAuctionsTemp);
-        console.log("Active Auctions:", activeAuctionsTemp);
 
         setYourAuctions(yourAuctionsTemp);
         setActiveAuctions(activeAuctionsTemp);
@@ -1527,6 +1521,7 @@ const checkEndingAuctions = async () => {
 
         // Refresh the auctions display
         await loadActiveAuctions();
+        await loadYourBids();
 
     } catch (error) {
         console.error("Error checking ending auctions:", error);
@@ -1591,6 +1586,7 @@ const handlePlaceBid = async () => {
 
         await tx.wait();
         await loadActiveAuctions();
+        await loadYourBids();
         setShowBidPopup(false);
         setBidAmount('');
         setSelectedAuction(null);
@@ -1599,6 +1595,54 @@ const handlePlaceBid = async () => {
         alert("Failed to place bid: " + (error.reason || error.message));
     }
 };
+
+// Add this function with your other functions
+const loadYourBids = async () => {
+    if (!tradeContract || !account) return;
+
+    try {
+        const totalTokens = await contract.getNextTokenId();
+        const yourBidsTemp = [];
+
+        for (let tokenId = 0; tokenId < totalTokens; tokenId++) {
+            try {
+                const auction = await tradeContract.getAuction(tokenId);
+                
+                // Check if auction exists, is active, and you have bid on it
+                if (auction.active && 
+                    auction.bids.some(bid => bid.bidder.toLowerCase() === account.toLowerCase())) {
+                    const cardAttributes = await contract.getPokemonAttributes(tokenId);
+                    
+                    yourBidsTemp.push({
+                        tokenId,
+                        startingPrice: auction.startingPrice,
+                        highestBid: auction.highestBid,
+                        highestBidder: auction.highestBidder,
+                        seller: auction.seller,
+                        endTime: auction.endTime,
+                        active: auction.active,
+                        name: cardAttributes.name,
+                        yourBid: auction.bids.find(bid => 
+                            bid.bidder.toLowerCase() === account.toLowerCase()
+                        ).amount
+                    });
+                }
+            } catch (error) {
+                continue;
+            }
+        }
+
+        setYourBids(yourBidsTemp);
+    } catch (error) {
+        console.error("Error loading your bids:", error);
+    }
+};
+
+useEffect(() => {
+    if (tradeContract && account) {
+        loadYourBids();
+    }
+}, [tradeContract, account]);
 
   return (
     <div className="container">
@@ -1758,6 +1802,7 @@ const handlePlaceBid = async () => {
                     yourAuctions.map((auction) => (
                         <div key={auction.tokenId} className="card">
                             <h3>Token ID: {auction.tokenId}</h3>
+                            <p>Name: {auction.name}</p>
                             <p>Starting Price: {formatBigNumber(auction.startingPrice)} ETH</p>
                             <p>Highest Bid: {formatBigNumber(auction.highestBid)} ETH</p>
                             <p>Ends At: {new Date(Number(auction.endTime) * 1000).toLocaleString()}</p>
@@ -1773,8 +1818,24 @@ const handlePlaceBid = async () => {
             <div className="your-bids-container">
                 <h3>Your Bids</h3>
                 <div className="your-bids-grid">
-                    {/* This section will be populated with functionality later */}
-                    <p>No active bids found.</p>
+                    {yourBids.length > 0 ? (
+                        yourBids.map((auction) => (
+                            <div key={auction.tokenId} className="card">
+                                <h3>Token ID: {auction.tokenId}</h3>
+                                <p>Name: {auction.name}</p>
+                                <p>Your Bid: {Number(auction.yourBid.toString()) / 1e18} ETH</p>
+                                <p>Current Highest Bid: {Number(auction.highestBid.toString()) / 1e18} ETH</p>
+                                <p>Ends At: {new Date(Number(auction.endTime) * 1000).toLocaleString()}</p>
+                                {auction.highestBidder.toLowerCase() === account.toLowerCase() ? (
+                                    <p className="highest-bidder">You are the highest bidder!</p>
+                                ) : (
+                                    <p className="outbid">You have been outbid</p>
+                                )}
+                            </div>
+                        ))
+                    ) : (
+                        <p>No active bids found.</p>
+                    )}
                 </div>
             </div>
 
