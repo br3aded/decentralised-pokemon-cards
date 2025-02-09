@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "./PokemonCard.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 interface IPokemonCard {
     function safeTransferFrom(address from, address to, uint256 tokenId) external;
@@ -10,7 +11,7 @@ interface IPokemonCard {
     function approve(address to, uint256 tokenId) external;
 }
 
-contract PokemonTrade is ReentrancyGuard {
+contract PokemonTrade is ReentrancyGuard, IERC721Receiver {
     struct Sale {
         uint256 price;
         address seller;
@@ -100,6 +101,16 @@ contract PokemonTrade is ReentrancyGuard {
         delete sales[tokenId]; // Remove the sale
 
         emit CardRemovedFromSale(tokenId, msg.sender); // Emit an event for logging
+    }
+
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external override returns (bytes4) {
+        // Return the function selector to indicate successful receipt
+        return IERC721Receiver.onERC721Received.selector;
     }
 
     /// @notice Create an auction for a card
@@ -241,4 +252,5 @@ contract PokemonTrade is ReentrancyGuard {
     function getTotalAuctionTokens() external view returns (uint256) {
         return totalAuctionTokens;
     }
+
 }

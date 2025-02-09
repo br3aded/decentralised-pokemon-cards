@@ -419,7 +419,32 @@ const PokemonTradeABI = [
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
-  }
+  },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "winner",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "AuctionEnded",
+        "type": "event"
+    }
     // Add other functions as needed
 ];
 
@@ -1373,44 +1398,70 @@ function PokemonInterface() {
     try {
         const yourAuctionsTemp = [];
         const activeAuctionsTemp = [];
-        const activeAuctionsCount = await tradeContract.getTotalAuctionTokens(); // Get the total number of auction tokens
+        const totalAuctionTokens = await tradeContract.getTotalAuctionTokens();
 
-        for (let tokenId = 0; tokenId < activeAuctionsCount; tokenId++) {
-            try {
-                const auction = await tradeContract.getAuction(tokenId); // Fetch auction details
-                if (auction.active) {
-                    const auctionDetails = {
-                        tokenId,
-                        startingPrice: auction.startingPrice,
-                        highestBid: auction.highestBid,
-                        highestBidder: auction.highestBidder,
-                        seller: auction.seller,
-                        endTime: auction.endTime,
-                    };
+        console.log("Total auction tokens:", totalAuctionTokens.toString());
 
-                    // Check if the auction belongs to the connected account
-                    if (auction.seller.toLowerCase() === account.toLowerCase()) {
-                        yourAuctionsTemp.push(auctionDetails); // Add to user's auctions
-                    } else {
-                        activeAuctionsTemp.push(auctionDetails); // Add to all active auctions
+        // Get all auctions efficiently
+        const auctionPromises = [];
+        for (let tokenId = 0; tokenId < totalAuctionTokens; tokenId++) {
+            auctionPromises.push(tradeContract.getAuction(tokenId)
+                .then(async (auction) => {
+                    if (auction.active) {
+                        try {
+                            const cardAttributes = await contract.getPokemonAttributes(tokenId);
+                            
+                            const auctionDetails = {
+                                tokenId,
+                                startingPrice: Number(auction.startingPrice.toString()) / 1e18,
+                                highestBid: auction.highestBid,
+                                highestBidder: auction.highestBidder,
+                                seller: auction.seller,
+                                endTime: auction.endTime,
+                                name: cardAttributes.name,
+                                primaryType: cardAttributes.primaryType,
+                                secondaryType: cardAttributes.secondaryType,
+                                attack: cardAttributes.attack,
+                                defense: cardAttributes.defense
+                            };
+
+                            return { success: true, auction: auctionDetails };
+                        } catch (error) {
+                            console.log(`Error getting attributes for token ${tokenId}:`, error);
+                            return { success: false };
+                        }
                     }
-                }
-            } catch (error) {
-                console.error(`Error fetching auction for token ID ${tokenId}:`, error);
-                // Optionally, you can handle specific cases here, like skipping to the next token ID
-            }
+                    return { success: false };
+                })
+                .catch(() => ({ success: false }))
+            );
         }
 
-        setYourAuctions(yourAuctionsTemp); // Update state with user's auctions
-        setActiveAuctions(activeAuctionsTemp); // Update state with all active auctions
+        // Wait for all promises to resolve
+        const results = await Promise.allSettled(auctionPromises);
 
-        // Log the active auctions for verification
+        // Process results
+        results.forEach((result) => {
+            if (result.status === 'fulfilled' && result.value.success) {
+                const auctionDetails = result.value.auction;
+                if (auctionDetails.seller.toLowerCase() === account.toLowerCase()) {
+                    yourAuctionsTemp.push(auctionDetails);
+                } else {
+                    activeAuctionsTemp.push(auctionDetails);
+                }
+            }
+        });
+
         console.log("Your Auctions:", yourAuctionsTemp);
-        console.log("All Active Auctions:", activeAuctionsTemp);
+        console.log("Active Auctions:", activeAuctionsTemp);
+
+        setYourAuctions(yourAuctionsTemp);
+        setActiveAuctions(activeAuctionsTemp);
+
     } catch (error) {
         console.error("Error loading active auctions:", error);
     }
-  };
+};
 
   // Call loadActiveAuctions in useEffect
   useEffect(() => {
@@ -1426,86 +1477,53 @@ function PokemonInterface() {
 
   // Update the checkEndingAuctions function
 const checkEndingAuctions = async () => {
+    if (!tradeContract) return;
+
     try {
         console.log("Checking for ending auctions...");
-        // Get fresh data first
-        await loadActiveAuctions();
-        
+        const totalTokens = await contract.getNextTokenId();
         const currentTime = Math.floor(Date.now() / 1000);
-        const allAuctionsToCheck = [...yourAuctions, ...activeAuctions];
-        
-        if (allAuctionsToCheck.length === 0) {
-            console.log("No active auctions to check");
-            return;
-        }
 
-        // Keep track of ended auctions
-        const endedAuctions = [];
-
-        for (const auction of allAuctionsToCheck) {
+        for (let tokenId = 0; tokenId < totalTokens; tokenId++) {
             try {
-                const currentAuction = await tradeContract.getAuction(auction.tokenId);
+                const auction = await tradeContract.getAuction(tokenId);
                 
-                if (currentAuction.active && currentTime >= Number(currentAuction.endTime)) {
-                    console.log(`Attempting to end auction for token ${auction.tokenId}`);
-                    
-                    const tx = await tradeContract.endAuction(auction.tokenId);
+                // Check if auction is active and has ended
+                if (auction.active && Number(auction.endTime) <= currentTime) {
+                    console.log(`Ending auction for token ${tokenId}`);
+                    const tx = await tradeContract.endAuction(tokenId);
                     await tx.wait();
-                    
-                    endedAuctions.push(auction.tokenId);
-                    console.log(`Successfully ended auction for token ${auction.tokenId}`);
+                    console.log(`Successfully ended auction for token ${tokenId}`);
                 }
             } catch (error) {
-                if (!error.reason?.includes("Auction does not exist")) {
-                    console.error(`Error processing auction ${auction.tokenId}:`, error);
-                }
+                // Skip if no auction exists for this token
+                continue;
             }
         }
 
-        if (endedAuctions.length > 0) {
-            // Update the local state to remove ended auctions
-            setYourAuctions(prev => prev.filter(auction => !endedAuctions.includes(auction.tokenId)));
-            setActiveAuctions(prev => prev.filter(auction => !endedAuctions.includes(auction.tokenId)));
-            
-            // Refresh the full auction list
-            await loadActiveAuctions();
-            console.log(`Removed ${endedAuctions.length} ended auctions`);
-        }
-        
+        // Refresh the auctions display
+        await loadActiveAuctions();
+
     } catch (error) {
-        console.error("Error in checkEndingAuctions:", error);
+        console.error("Error checking ending auctions:", error);
     }
 };
 
-// Update the useEffect for polling
+// Update the useEffect for auction checking
 useEffect(() => {
-    if (tradeContract) {
-        // Initial check
+    if (!tradeContract) return;
+
+    // Check immediately on component mount
+    checkEndingAuctions();
+
+    // Set up interval for checking (every minute)
+    const interval = setInterval(() => {
         checkEndingAuctions();
+    }, 60000); // Check every minute
 
-        // Calculate delay until the start of the next minute
-        const now = new Date();
-        const delay = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
-        
-        console.log(`Setting up auction check to start in ${delay}ms`);
-        
-        const timer = setTimeout(() => {
-            checkEndingAuctions();
-            const interval = setInterval(checkEndingAuctions, 60000);
-            console.log("Auction checking interval established");
-            
-            return () => {
-                clearInterval(interval);
-                console.log("Auction checking interval cleared");
-            };
-        }, delay);
-
-        return () => {
-            clearTimeout(timer);
-            console.log("Auction checking timer cleared");
-        };
-    }
-}, [tradeContract]);
+    // Clean up interval on unmount
+    return () => clearInterval(interval);
+}, [tradeContract]); // Only re-run when tradeContract changes
 
   return (
     <div className="container">
