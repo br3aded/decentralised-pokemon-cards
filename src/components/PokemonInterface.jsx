@@ -1829,7 +1829,19 @@ useEffect(() => {
                                 {auction.highestBidder.toLowerCase() === account.toLowerCase() ? (
                                     <p className="highest-bidder">You are the highest bidder!</p>
                                 ) : (
-                                    <p className="outbid">You have been outbid</p>
+                                    <>
+                                        <p className="outbid">You have been outbid</p>
+                                        <button 
+                                            className="action-button" 
+                                            style={{ marginTop: '10px' }}
+                                            onClick={() => {
+                                                setSelectedAuction(auction);
+                                                setShowBidPopup(true);
+                                            }}
+                                        >
+                                            Place New Bid
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         ))
