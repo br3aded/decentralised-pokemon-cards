@@ -1722,6 +1722,13 @@ useEffect(() => {
                                 <p>Starting Price: {formatBigNumber(auction.startingPrice)} ETH</p>
                                 <p>Highest Bid: {formatBigNumber(auction.highestBid)} ETH</p>
                                 <p>Ends At: {new Date(Number(auction.endTime) * 1000).toLocaleString()}</p>
+                                {/* Add the Make Bid button */}
+                                <button 
+                                    className="action-button" 
+                                    style={{ marginTop: '10px' }}
+                                >
+                                    Make Bid
+                                </button>
                             </div>
                         ))
                     ) : (
