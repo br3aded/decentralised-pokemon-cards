@@ -148,6 +148,11 @@ contract PokemonTrade is ReentrancyGuard, IERC721Receiver {
         require(block.timestamp < auction.endTime, "Auction has ended");
         require(msg.value > auction.highestBid && msg.value >= auction.startingPrice, "Bid too low");
 
+        // If there was a previous bid, refund it immediately
+        if (auction.highestBidder != address(0)) {
+            payable(auction.highestBidder).transfer(auction.highestBid);
+        }
+
         // Store the new bid in the bids array
         auction.bids.push(Bid(msg.sender, msg.value));
         

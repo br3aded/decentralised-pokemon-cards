@@ -444,7 +444,20 @@ const PokemonTradeABI = [
         ],
         "name": "AuctionEnded",
         "type": "event"
-    }
+    },
+    {
+      "inputs": [
+          {
+              "internalType": "uint256",
+              "name": "tokenId",
+              "type": "uint256"
+          }
+      ],
+      "name": "placeBid",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+  }
     // Add other functions as needed
 ];
 
@@ -471,6 +484,9 @@ function PokemonInterface() {
   const [auctionDuration, setAuctionDuration] = useState('');
   const [yourAuctions, setYourAuctions] = useState([]);
   const [auctionEndTime, setAuctionEndTime] = useState('');
+  const [showBidPopup, setShowBidPopup] = useState(false);
+  const [bidAmount, setBidAmount] = useState('');
+  const [selectedAuction, setSelectedAuction] = useState(null);
 
   // Add these event listeners in a useEffect
   useEffect(() => {
@@ -1352,7 +1368,7 @@ function PokemonInterface() {
         // Convert end time to Unix timestamp (seconds)
         const endTimestamp = Math.floor(new Date(auctionEndTime).getTime() / 1000);
         const currentTime = Math.floor(Date.now() / 1000);
-        const priceInWei = BigInt(Math.floor(parseFloat(auctionMinimumPrice) * 1e18));
+        //const priceInWei = BigInt(Math.floor(parseFloat(auctionMinimumPrice) * 1e18));
 
         if (endTimestamp <= currentTime) {
             alert("End time must be in the future.");
@@ -1367,13 +1383,13 @@ function PokemonInterface() {
 
         console.log("Creating auction with parameters:", {
             tokenId: selectedCard.tokenId,
-            priceInWei: priceInWei.toString(),
+            priceInWei: minPrice.toString(),
             endTimestamp,
         });
 
         const tx = await tradeContract.createAuction(
             selectedCard.tokenId,
-            priceInWei,
+            minPrice,
             endTimestamp,
             { gasLimit: 500000 }
         );
@@ -1415,7 +1431,7 @@ function PokemonInterface() {
                                 
                                 const auctionDetails = {
                                     tokenId,
-                                    startingPrice: Number(auction.startingPrice.toString()) / 1e18,
+                                    startingPrice: auction.startingPrice,
                                     highestBid: auction.highestBid,
                                     highestBidder: auction.highestBidder,
                                     seller: auction.seller,
@@ -1532,6 +1548,57 @@ useEffect(() => {
     // Clean up interval on unmount
     return () => clearInterval(interval);
 }, [tradeContract]); // Only re-run when tradeContract changes
+
+  // Add this function to handle placing bids
+const handlePlaceBid = async () => {
+    if (!selectedAuction || !tradeContract) return;
+
+    try {
+        // Get current auction state to ensure bid is valid
+        const currentAuction = await tradeContract.getAuction(selectedAuction.tokenId);
+        
+        // Convert bid amount to Wei
+        const bidAmountWei = BigInt(Math.floor(parseFloat(bidAmount) * 1e18));
+        
+        // Keep values as BigInt for comparison
+        const currentHighestBid = BigInt(currentAuction.highestBid);
+        const startingPrice = BigInt(currentAuction.startingPrice);
+        
+        // Validate bid amount
+        if (bidAmountWei <= currentHighestBid) {
+            const currentHighestBidEth = Number(currentHighestBid) / 1e18;
+            alert(`Bid must be higher than the current highest bid (${currentHighestBidEth} ETH)`);
+            return;
+        }
+        
+        if (bidAmountWei < startingPrice) {
+            const startingPriceEth = Number(startingPrice) / 1e18;
+            alert(`Bid must be at least the starting price (${startingPriceEth} ETH)`);
+            return;
+        }
+
+        console.log("Placing bid with parameters:", {
+            tokenId: selectedAuction.tokenId,
+            bidAmount: bidAmountWei.toString(),
+            currentHighestBid: currentHighestBid.toString(),
+            startingPrice: startingPrice.toString()
+        });
+
+        const tx = await tradeContract.placeBid(selectedAuction.tokenId, {
+            value: bidAmountWei,
+            gasLimit: 500000
+        });
+
+        await tx.wait();
+        await loadActiveAuctions();
+        setShowBidPopup(false);
+        setBidAmount('');
+        setSelectedAuction(null);
+    } catch (error) {
+        console.error("Error placing bid:", error);
+        alert("Failed to place bid: " + (error.reason || error.message));
+    }
+};
 
   return (
     <div className="container">
@@ -1719,13 +1786,16 @@ useEffect(() => {
                         activeAuctions.map((auction) => (
                             <div key={auction.tokenId} className="card">
                                 <h3>Token ID: {auction.tokenId}</h3>
-                                <p>Starting Price: {formatBigNumber(auction.startingPrice)} ETH</p>
-                                <p>Highest Bid: {formatBigNumber(auction.highestBid)} ETH</p>
+                                <p>Starting Price: {Number(auction.startingPrice.toString())/ 1e18} ETH</p>
+                                <p>Highest Bid: {Number(auction.highestBid.toString()) / 1e18} ETH</p>
                                 <p>Ends At: {new Date(Number(auction.endTime) * 1000).toLocaleString()}</p>
-                                {/* Add the Make Bid button */}
                                 <button 
                                     className="action-button" 
                                     style={{ marginTop: '10px' }}
+                                    onClick={() => {
+                                        setSelectedAuction(auction);
+                                        setShowBidPopup(true);
+                                    }}
                                 >
                                     Make Bid
                                 </button>
@@ -1771,6 +1841,39 @@ useEffect(() => {
                     <div className="popup-buttons">
                         <button className="action-button" onClick={handleCreateAuction}>Create Auction</button>
                         <button className="action-button" onClick={() => setShowAuctionPopup(false)}>Close</button>
+                    </div>
+                </div>
+            </div>
+          )}
+          {/* Add this near your other popups */}
+          {showBidPopup && selectedAuction && (
+            <div className="popup">
+                <div className="popup-content">
+                    <h3>Place Bid</h3>
+                    <p>Token ID: {selectedAuction.tokenId}</p>
+                    <p>Current Highest Bid: {formatBigNumber(selectedAuction.highestBid)} ETH</p>
+                    <p>Minimum Bid: {formatBigNumber(selectedAuction.startingPrice)} ETH</p>
+                    <label>
+                        Your Bid (ETH):
+                        <input 
+                            type="number" 
+                            value={bidAmount} 
+                            onChange={(e) => setBidAmount(e.target.value)} 
+                            placeholder="Enter bid amount in ETH"
+                            min={Math.max(
+                                Number(selectedAuction.startingPrice) / 1e18,
+                                Number(selectedAuction.highestBid) / 1e18 + 0.0001
+                            )}
+                            step="0.0001"
+                        />
+                    </label>
+                    <div className="popup-buttons">
+                        <button className="action-button" onClick={handlePlaceBid}>Place Bid</button>
+                        <button className="action-button" onClick={() => {
+                            setShowBidPopup(false);
+                            setBidAmount('');
+                            setSelectedAuction(null);
+                        }}>Close</button>
                     </div>
                 </div>
             </div>
