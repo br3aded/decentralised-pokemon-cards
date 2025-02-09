@@ -171,28 +171,25 @@ contract PokemonTrade is ReentrancyGuard, IERC721Receiver {
         auction.active = false;
 
         if (auction.highestBidder != address(0)) {
-            // Case: Auction ended with at least one bid
-            // Transfer the NFT from contract to winner
-            nftContract.safeTransferFrom(address(this), auction.highestBidder, tokenId);
-            // Transfer the highest bid to the seller
+            // Transfer funds to seller first
             payable(auction.seller).transfer(auction.highestBid);
 
-            // Refund all losing bids
-            for (uint i = 0; i < auction.bids.length - 1; i++) {
-                Bid memory bid = auction.bids[i];
-                if (bid.bidder != auction.highestBidder) {
-                    payable(bid.bidder).transfer(bid.amount);
-                }
+            // Transfer NFT to winner
+            try nftContract.safeTransferFrom(address(this), auction.highestBidder, tokenId) {
+                emit AuctionEnded(tokenId, auction.highestBidder, auction.highestBid);
+            } catch {
+                revert("Failed to transfer NFT to winner");
             }
-
-            emit AuctionEnded(tokenId, auction.highestBidder, auction.highestBid);
         } else {
-            // Case: Auction ended with no bids, return NFT to seller
-            nftContract.safeTransferFrom(address(this), auction.seller, tokenId);
-            emit AuctionEnded(tokenId, address(0), 0);
+            // Return NFT to seller if no bids
+            try nftContract.safeTransferFrom(address(this), auction.seller, tokenId) {
+                emit AuctionEnded(tokenId, address(0), 0);
+            } catch {
+                revert("Failed to return NFT to seller");
+            }
         }
 
-        // Clean up by deleting the auction
+        // Clean up auction data
         delete auctions[tokenId];
         totalAuctionTokens--;
     }

@@ -1407,10 +1407,7 @@ function PokemonInterface() {
 }
 
   const loadActiveAuctions = async () => {
-    if (!tradeContract) {
-        console.error("Trade contract is not initialized.");
-        return;
-    }
+    if (!tradeContract) return;
 
     try {
         const yourAuctionsTemp = [];
@@ -1422,10 +1419,13 @@ function PokemonInterface() {
             auctionPromises.push(
                 tradeContract.getAuction(tokenId)
                     .then(async (auction) => {
-                        if (auction && auction.seller !== '0x0000000000000000000000000000000000000000') {
+                        // Only process if auction exists, has a seller, and is active
+                        if (auction && 
+                            auction.seller !== '0x0000000000000000000000000000000000000000' && 
+                            auction.active && 
+                            Number(auction.endTime) > Math.floor(Date.now() / 1000)) {  // Check if not ended
                             try {
                                 const cardAttributes = await contract.getPokemonAttributes(tokenId);
-                                
                                 const auctionDetails = {
                                     tokenId,
                                     startingPrice: auction.startingPrice,
@@ -1435,40 +1435,32 @@ function PokemonInterface() {
                                     endTime: auction.endTime,
                                     active: auction.active,
                                     name: cardAttributes.name,
-                                    bids: auction.bids // Add this to check for user's bids
+                                    bids: auction.bids
                                 };
-
                                 return { success: true, auction: auctionDetails };
                             } catch (error) {
-                                console.log(`Error getting attributes for token ${tokenId}:`, error);
                                 return { success: false };
                             }
                         }
                         return { success: false };
                     })
-                    .catch((error) => {
-                        console.log(`No auction for token ${tokenId}:`, error);
+                    .catch(() => {
                         return { success: false };
                     })
             );
         }
 
+        // Process results silently without logging errors
         const results = await Promise.allSettled(auctionPromises);
-
         results.forEach((result) => {
             if (result.status === 'fulfilled' && result.value.success) {
                 const auctionDetails = result.value.auction;
-                if (auctionDetails.active) {
-                    // Check if this is your auction
-                    if (auctionDetails.seller.toLowerCase() === account.toLowerCase()) {
-                        yourAuctionsTemp.push(auctionDetails);
-                    } 
-                    // If it's not your auction and you haven't bid on it, add to active auctions
-                    else if (!auctionDetails.bids.some(bid => 
-                        bid.bidder.toLowerCase() === account.toLowerCase()
-                    )) {
-                        activeAuctionsTemp.push(auctionDetails);
-                    }
+                if (auctionDetails.seller.toLowerCase() === account.toLowerCase()) {
+                    yourAuctionsTemp.push(auctionDetails);
+                } else if (!auctionDetails.bids.some(bid => 
+                    bid.bidder.toLowerCase() === account.toLowerCase()
+                )) {
+                    activeAuctionsTemp.push(auctionDetails);
                 }
             }
         });
@@ -1608,8 +1600,9 @@ const loadYourBids = async () => {
             try {
                 const auction = await tradeContract.getAuction(tokenId);
                 
-                // Check if auction exists, is active, and you have bid on it
+                // Only process active auctions that haven't ended
                 if (auction.active && 
+                    Number(auction.endTime) > Math.floor(Date.now() / 1000) &&
                     auction.bids.some(bid => bid.bidder.toLowerCase() === account.toLowerCase())) {
                     const cardAttributes = await contract.getPokemonAttributes(tokenId);
                     
@@ -1628,6 +1621,7 @@ const loadYourBids = async () => {
                     });
                 }
             } catch (error) {
+                // Silently continue if auction doesn't exist
                 continue;
             }
         }
