@@ -1662,7 +1662,7 @@ useEffect(() => {
       <h1>Pokemon Card NFT Trading</h1>
       {/* front page when connecting without a connected wallet*/}
       {!account ? (
-        <div>
+        <div className="connect-wallet-container">
           <button onClick={connectWallet}>Connect Wallet</button>
           <p>Please connect your wallet to continue</p>
         </div>
