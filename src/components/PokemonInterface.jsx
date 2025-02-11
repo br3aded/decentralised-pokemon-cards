@@ -1,8 +1,9 @@
+//imports
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import './PokemonInterface.css';
 
-// Define the ABI explicitly
+// define ABI used to interact with smart contracts for PokemonCard.sol 
 const PokemonCardABI = [
   {
     "inputs": [],
@@ -196,6 +197,7 @@ const PokemonCardABI = [
   }
 ];
 
+// define ABI used to interact with smart contracts for PokemonTrade.sol
 const PokemonTradeABI = [
     {
         "inputs": [
@@ -461,7 +463,9 @@ const PokemonTradeABI = [
     // Add other functions as needed
 ];
 
+// PokemonInterface component
 function PokemonInterface() {
+  //define state variables
   const [account, setAccount] = useState('');
   const [contract, setContract] = useState(null);
   const [cards, setCards] = useState([]);
@@ -489,7 +493,7 @@ function PokemonInterface() {
   const [selectedAuction, setSelectedAuction] = useState(null);
   const [yourBids, setYourBids] = useState([]);
 
-  // Add these event listeners in a useEffect
+  //used when loading page to check connection
   useEffect(() => {
     // Check if already connected
     const checkConnection = async () => {
@@ -617,7 +621,7 @@ function PokemonInterface() {
     }
   }
 
-  // Add this function to check ownership
+  //Function to check is connected wallet is owner of PokemonCard contract
   async function checkOwnership() {
     if (!contract) {
       console.log("No contract instance available");
@@ -650,7 +654,7 @@ function PokemonInterface() {
     }
   }
 
-  // Update the loadCards function to use ERC721Enumerable functions
+  //function used to load cards for conneted account
   const loadCards = async () => {
     if (!contract) {
         console.error("Contract is not initialized.");
@@ -659,13 +663,13 @@ function PokemonInterface() {
 
     try {
         const cardsTemp = [];
-        const totalCards = await contract.getNextTokenId(); // Assuming this function exists
+        const totalCards = await contract.getNextTokenId(); 
 
         for (let tokenId = 0; tokenId < totalCards; tokenId++) {
             try {
                 const owner = await contract.ownerOf(tokenId); // Get the owner of the card
                 if (owner.toLowerCase() === account.toLowerCase()) { // Check if the owner matches the current account
-                    const attributes = await contract.getPokemonAttributes(tokenId);
+                    const attributes = await contract.getPokemonAttributes(tokenId);//get all attributes
                     const isOnSale = await tradeContract.getSale(tokenId); // Check if the card is on sale
 
                     cardsTemp.push({
@@ -690,7 +694,7 @@ function PokemonInterface() {
     }
   };
 
-  // Add this function to handle form submission
+  // Add this function to handle form submission for minting new card
   const handleMintSubmit = async (e) => {
     e.preventDefault();
     if (!contract || !account) return;
@@ -705,6 +709,7 @@ function PokemonInterface() {
         defense: newCardDefense
       });
 
+      //use mintCard contract with variables from form to create a new nft
       const tx = await contract.mintCard(
         account,
         newCardName,
@@ -735,7 +740,7 @@ function PokemonInterface() {
     }
   };
 
-  // Add this function to handle name input validation
+  //function to handle name input validation
   const handleNameChange = (e) => {
     // Only allow letters and spaces
     const value = e.target.value;
@@ -744,9 +749,10 @@ function PokemonInterface() {
     }
   };
 
-  // Update the name input in your mintForm
+  //javascript to create mint form
   const mintForm = (
     <form onSubmit={handleMintSubmit} className="mint-form">
+      {/* Component for handling pokemon name */}
       <div className="form-group">
         <label htmlFor="cardName">Pokemon Name:</label>
         <input
@@ -761,7 +767,8 @@ function PokemonInterface() {
           maxLength="20"
         />
       </div>
-
+      
+      {/* Component for handling primary pokemon type */}
       <div className="form-group">
         <label htmlFor="cardPrimaryType">Primary Type:</label>
         <select
@@ -789,6 +796,7 @@ function PokemonInterface() {
         </select>
       </div>
 
+      {/* Component for handling secondary pokemon type */}
       <div className="form-group">
         <label htmlFor="cardSecondaryType">Secondary Type:</label>
         <select
@@ -817,6 +825,7 @@ function PokemonInterface() {
         </select>
       </div>
 
+      {/* Component for handling pokemon attack stat between 0 - 150 */}
       <div className="form-group">
         <label htmlFor="cardAttack">Attack Points:</label>
         <div className="number-input">
@@ -830,10 +839,11 @@ function PokemonInterface() {
             max="150"
             step="10"
           />
-          <button type="button" onClick={() => setNewCardAttack(Math.min(100, newCardAttack + 10))}>+10</button>
+          <button type="button" onClick={() => setNewCardAttack(Math.min(150, newCardAttack + 10))}>+10</button>
         </div>
       </div>
 
+      {/* Component for handling pokemon defence stat between 0 - 150 */}
       <div className="form-group">
         <label htmlFor="cardDefense">Defense Points:</label>
         <div className="number-input">
@@ -847,7 +857,7 @@ function PokemonInterface() {
             max="150"
             step="10"
           />
-          <button type="button" onClick={() => setNewCardDefense(Math.min(100, newCardDefense + 10))}>+10</button>
+          <button type="button" onClick={() => setNewCardDefense(Math.min(150, newCardDefense + 10))}>+10</button>
         </div>
       </div>
 
@@ -855,7 +865,7 @@ function PokemonInterface() {
     </form>
   );
 
-  // Add some CSS for styling
+  // Adds some CSS for styling
   const styles = `
     .mint-form {
       max-width: 400px;
@@ -1116,14 +1126,14 @@ function PokemonInterface() {
     }
   }, [account]);
 
-  // Add this useEffect to log state changes
+  //useEffect to log state changes for debug
   useEffect(() => {
     console.log("Account:", account);
     console.log("Contract instance:", contract ? "Yes" : "No");
     console.log("Trade Contract instance:", tradeContract ? "Yes" : "No");
   }, [account, contract, tradeContract]);
 
-  // Add this function to get the owner address
+  //function to get the owner address
   async function getOwnerAddress() {
     if (!contract) return;
     try {
@@ -1135,31 +1145,34 @@ function PokemonInterface() {
     }
   }
 
-  // Add this useEffect to get the owner address when contract is initialized
+  //useEffect to get the owner address when contract is initialized
   useEffect(() => {
     if (contract) {
       getOwnerAddress();
     }
   }, [contract]);
 
-  // Also update the useEffect that checks ownership on contract initialization
+  //useEffect that checks ownership on contract initialization
   useEffect(() => {
     if (contract && account) {
       checkOwnership();
     }
   }, [contract, account]);
 
+  //function to handle selling a card popup
   const handleSellCard = (card) => {
     setSelectedCard(card);
     setShowSellPopup(true);
   };
 
+  //function to handle selling a card popup
   const handleClosePopup = () => {
     setShowSellPopup(false);
     setSelectedCard(null);
     setPrice('');
   };
 
+  //function used to handle listing set price sales
   const handleListCard = async () => {
     // Validate the price input
     if (parseFloat(price) <= 0) {
@@ -1208,6 +1221,7 @@ function PokemonInterface() {
     }
   };
 
+  //function used to load the active card sales in the all sales component
   const loadActiveSales = async () => {
     if (!tradeContract) {
         console.error("Trade contract is not initialized.");
@@ -1215,7 +1229,10 @@ function PokemonInterface() {
     }
 
     try {
+        // Initialize temporary arrays to store sales for different components
+        // Your sales will be displayed in the "Your Sales" component and are started by the connected wallet
         const yourSalesTemp = [];
+        // All active sales will be displayed in the "All Active Sales" component and include all sales on the marketplace that arent in "Your Sales"
         const allSalesTemp = [];
         const activeSalesCount = await contract.getNextTokenId(); // Get the next token ID
 
@@ -1271,22 +1288,7 @@ function PokemonInterface() {
     loadActiveSales(); // Load active sales when the component mounts
   }, [tradeContract]); // Run when tradeContract is set
 
-  const handleViewCardAttributes = async (tokenId) => {
-    if (!contract) {
-        console.error("Contract is not initialized.");
-        return;
-    }
-
-    try {
-        const attributes = await contract.getPokemonAttributes(tokenId);
-        console.log("Card Attributes:", attributes);
-        // You can display these attributes in a modal or alert
-        alert(`Name: ${attributes.name}\nPrimary Type: ${attributes.primaryType}\nSecondary Type: ${attributes.secondaryType}\nAttack: ${attributes.attack}\nDefense: ${attributes.defense}`);
-    } catch (error) {
-        console.error("Error fetching card attributes:", error);
-    }
-  };
-
+  //function to handle removing a card from sale by the seller
   async function handleRemoveFromSale(tokenId) {
     if (!tradeContract) {
         alert("Trade contract is not initialized. Please connect your wallet.");
@@ -1294,7 +1296,7 @@ function PokemonInterface() {
     }
 
     try {
-        const tx = await tradeContract.removeCardFromSale(tokenId);
+        const tx = await tradeContract.removeCardFromSale(tokenId); //use removeCardFromSale function from trade contract
         await tx.wait(); // Wait for the transaction to be mined
         console.log(`Card with Token ID ${tokenId} removed from sale successfully!`);
 
@@ -1315,18 +1317,20 @@ function PokemonInterface() {
 
     try {
         console.log("Retrieving sale information for token ID:", tokenId);
-        const sale = await tradeContract.getSale(tokenId);
+        const sale = await tradeContract.getSale(tokenId); // Get the sale details
         console.log("Sale details:", sale);
         
         const priceInWei = sale.price; // Get the price in Wei
         console.log(`Attempting to buy card with Token ID: ${tokenId} for ${priceInWei} Wei`);
 
+        //log for debug
         console.log("Transaction details:", {
             tokenId,
             value: priceInWei,
             gasLimit: 1000000
         });
 
+        // Call the buyCard function from the trade contract
         const tx = await tradeContract.buyCard(tokenId, {
             value: priceInWei, // Send the price as value
             gasLimit: 1000000 // Increase gas limit
@@ -1359,6 +1363,7 @@ function PokemonInterface() {
         return;
     }
 
+    // Check if the user is the owner of the card
     try {
         const owner = await contract.ownerOf(selectedCard.tokenId);
         if (owner.toLowerCase() !== account.toLowerCase()) {
@@ -1369,25 +1374,28 @@ function PokemonInterface() {
         // Convert end time to Unix timestamp (seconds)
         const endTimestamp = Math.floor(new Date(auctionEndTime).getTime() / 1000);
         const currentTime = Math.floor(Date.now() / 1000);
-        //const priceInWei = BigInt(Math.floor(parseFloat(auctionMinimumPrice) * 1e18));
 
+        // Check if the end time is in the future
         if (endTimestamp <= currentTime) {
             alert("End time must be in the future.");
             return;
         }
 
         // First, approve the trade contract to transfer the NFT
+        // This is required to transfer the NFT to the auction contract
         console.log("Approving NFT transfer...");
         const approveTx = await contract.approve(tradeContract.target, selectedCard.tokenId);
         await approveTx.wait();
         console.log("NFT transfer approved");
 
+        //console log for debug
         console.log("Creating auction with parameters:", {
             tokenId: selectedCard.tokenId,
             priceInWei: minPrice.toString(),
             endTimestamp,
         });
 
+        // Call the createAuction function from the trade contract
         const tx = await tradeContract.createAuction(
             selectedCard.tokenId,
             minPrice,
@@ -1395,6 +1403,7 @@ function PokemonInterface() {
             { gasLimit: 500000 }
         );
 
+        // Wait for the transaction to be mined
         await tx.wait();
         console.log(`Auction created for Token ID ${selectedCard.tokenId} with a starting price of ${auctionMinimumPrice} ETH, ending at ${new Date(endTimestamp * 1000).toLocaleString()}`);
         
@@ -1405,15 +1414,17 @@ function PokemonInterface() {
         alert("Failed to create auction. Please check the console for details.");
     }
 }
-
+  //function to load active auctions for the "All Active Auctions" component
   const loadActiveAuctions = async () => {
     if (!tradeContract) return;
 
     try {
+        //variables to store the auctions split by your auctions and active auctions similar to sales
         const yourAuctionsTemp = [];
         const activeAuctionsTemp = [];
         const totalTokens = await contract.getNextTokenId();
 
+        //functionality for loading all active auctions
         const auctionPromises = [];
         for (let tokenId = 0; tokenId < totalTokens; tokenId++) {
             auctionPromises.push(
@@ -1450,7 +1461,7 @@ function PokemonInterface() {
             );
         }
 
-        // Process results silently without logging errors
+        //filter auctions in your auctions and active auctions
         const results = await Promise.allSettled(auctionPromises);
         results.forEach((result) => {
             if (result.status === 'fulfilled' && result.value.success) {
@@ -1478,22 +1489,24 @@ function PokemonInterface() {
     loadActiveAuctions(); // Load active auctions when the component mounts
   }, [tradeContract]); // Run when tradeContract is set
 
-  // Add this helper function at the top of your component
+  //function to convert from wei to ether
   const formatBigNumber = (value) => {
     if (!value) return "0";
     // Convert BigInt to string, then to number and divide by 1e18
     return (Number(value.toString()) / 1e18).toString();
   };
 
-  // Update the checkEndingAuctions function
+// function for checking ending auctions
 const checkEndingAuctions = async () => {
     if (!tradeContract) return;
 
     try {
+        // Log a message for debugging
         console.log("Checking for ending auctions...");
         const totalTokens = await contract.getNextTokenId();
         const currentTime = Math.floor(Date.now() / 1000);
 
+        // Loop through all tokens to check for ending auctions
         for (let tokenId = 0; tokenId < totalTokens; tokenId++) {
             try {
                 const auction = await tradeContract.getAuction(tokenId);
@@ -1501,6 +1514,7 @@ const checkEndingAuctions = async () => {
                 // Check if auction is active and has ended
                 if (auction.active && Number(auction.endTime) <= currentTime) {
                     console.log(`Ending auction for token ${tokenId}`);
+                    // Call the endAuction function from the trade contract
                     const tx = await tradeContract.endAuction(tokenId);
                     await tx.wait();
                     console.log(`Successfully ended auction for token ${tokenId}`);
@@ -1520,7 +1534,7 @@ const checkEndingAuctions = async () => {
     }
 };
 
-// Update the useEffect for auction checking
+//used to check ending auctions on component mount and every minute
 useEffect(() => {
     if (!tradeContract) return;
 
@@ -1536,7 +1550,7 @@ useEffect(() => {
     return () => clearInterval(interval);
 }, [tradeContract]); // Only re-run when tradeContract changes
 
-  // Add this function to handle placing bids
+//function to handle placing bids
 const handlePlaceBid = async () => {
     if (!selectedAuction || !tradeContract) return;
 
@@ -1558,12 +1572,14 @@ const handlePlaceBid = async () => {
             return;
         }
         
+        // Validate bid amount against starting price
         if (bidAmountWei < startingPrice) {
             const startingPriceEth = Number(startingPrice) / 1e18;
             alert(`Bid must be at least the starting price (${startingPriceEth} ETH)`);
             return;
         }
 
+        // Log the bid details for debugging
         console.log("Placing bid with parameters:", {
             tokenId: selectedAuction.tokenId,
             bidAmount: bidAmountWei.toString(),
@@ -1571,6 +1587,7 @@ const handlePlaceBid = async () => {
             startingPrice: startingPrice.toString()
         });
 
+        // Call the placeBid function from the trade contract
         const tx = await tradeContract.placeBid(selectedAuction.tokenId, {
             value: bidAmountWei,
             gasLimit: 500000
@@ -1588,7 +1605,7 @@ const handlePlaceBid = async () => {
     }
 };
 
-// Add this function with your other functions
+//function to load your bids, this all auctions that the connect wallet has bid on , they will no longer display in active auctions
 const loadYourBids = async () => {
     if (!tradeContract || !account) return;
 
@@ -1605,7 +1622,7 @@ const loadYourBids = async () => {
                     Number(auction.endTime) > Math.floor(Date.now() / 1000) &&
                     auction.bids.some(bid => bid.bidder.toLowerCase() === account.toLowerCase())) {
                     const cardAttributes = await contract.getPokemonAttributes(tokenId);
-                    
+                    //add the auction to the yourBidsTemp array 
                     yourBidsTemp.push({
                         tokenId,
                         startingPrice: auction.startingPrice,
@@ -1632,16 +1649,18 @@ const loadYourBids = async () => {
     }
 };
 
+//useEffect to load your bids when the tradeContract is set
 useEffect(() => {
     if (tradeContract && account) {
         loadYourBids();
     }
 }, [tradeContract, account]);
-
+  //front end display
   return (
+    // Main container for the application
     <div className="container">
       <h1>Pokemon Card NFT Trading</h1>
-      
+      {/* front page when connecting without a connected wallet*/}
       {!account ? (
         <div>
           <button onClick={connectWallet}>Connect Wallet</button>
@@ -1655,13 +1674,14 @@ useEffect(() => {
               {isOwner ? "Owner" : "Not Owner"}
             </p>
           </div>
-          
+          {/*buttons for checking ownership , refreshing owner and refreshing your cards*/}
           <div className="action-buttons">
             <button onClick={checkOwnership}>Check Ownership</button>
             <button onClick={getOwnerAddress}>Refresh Owner Address</button>
             <button onClick={loadCards}>Refresh Cards</button>
           </div>
 
+          {/*Form for minting new cards*/}
           {isOwner && (
             <div>
               <h2>Mint New Pokemon Card</h2>
@@ -1669,6 +1689,7 @@ useEffect(() => {
             </div>
           )}
           
+          {/*Container for your cards*/}
           <div className="cards-container">
             <div className="header-container">
               <h2>Your Pokemon Cards</h2>
@@ -1683,6 +1704,7 @@ useEffect(() => {
                   <p>Attack: {Number(card.attack)}</p>
                   <p>Defense: {Number(card.defense)}</p>
                   <p>Token ID: {card.tokenId}</p>
+                  {/*Funtionality for buttons for on each card for fixed and auction sales */}
                   <div className="card-buttons">
                     {card.onSale ? (
                         <p className="listed-for-sale">Listed for Sale</p>
@@ -1874,6 +1896,7 @@ useEffect(() => {
                 </div>
             </div>
           </div>
+          {/* Popup for Auctioning Cards */}
           {showAuctionPopup && (
             <div className="popup">
                 <div className="popup-content">
@@ -1912,7 +1935,7 @@ useEffect(() => {
                 </div>
             </div>
           )}
-          {/* Add this near your other popups */}
+          {/*Pop up for placing bids */}
           {showBidPopup && selectedAuction && (
             <div className="popup">
                 <div className="popup-content">
