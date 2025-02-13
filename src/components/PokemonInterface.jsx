@@ -1518,6 +1518,7 @@ const checkEndingAuctions = async () => {
                     const tx = await tradeContract.endAuction(tokenId);
                     await tx.wait();
                     console.log(`Successfully ended auction for token ${tokenId}`);
+                    await loadCards();
                 }
             } catch (error) {
                 // Skip if no auction exists for this token
