@@ -48,6 +48,7 @@ contract PokemonTrade is ReentrancyGuard, IERC721Receiver {
     event AuctionEnded(uint256 tokenId, address winner, uint256 amount);
     event AuctionCancelled(uint256 tokenId, address seller);
     event BidWithdrawn(uint256 tokenId, address bidder, uint256 amount);
+    event Transfer(address from, address to, uint256 tokenId);
 
     constructor(address _nftContract, address _pokemonCardAddress) {
         nftContract = IPokemonCard(_nftContract);
@@ -177,6 +178,7 @@ contract PokemonTrade is ReentrancyGuard, IERC721Receiver {
             // Transfer NFT to winner
             try nftContract.safeTransferFrom(address(this), auction.highestBidder, tokenId) {
                 emit AuctionEnded(tokenId, auction.highestBidder, auction.highestBid);
+                emit Transfer(address(this), auction.highestBidder, tokenId);
             } catch {
                 revert("Failed to transfer NFT to winner");
             }

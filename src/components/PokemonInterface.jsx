@@ -1655,6 +1655,29 @@ useEffect(() => {
         loadYourBids();
     }
 }, [tradeContract, account]);
+
+// Add this useEffect to listen for Transfer events
+useEffect(() => {
+  const listenForTransferEvents = async () => {
+    if (tradeContract) {
+      tradeContract.on("Transfer", (from, to, tokenId) => {
+        console.log(`NFT with Token ID ${tokenId} transferred from ${from} to ${to}`);
+        // Call loadCards to refresh the state
+        loadCards();
+      });
+    }
+  };
+
+  listenForTransferEvents();
+
+  // Cleanup listener on unmount
+  return () => {
+    if (tradeContract) {
+      tradeContract.off("Transfer");
+    }
+  };
+}, [tradeContract]);
+
   //front end display
   return (
     // Main container for the application
