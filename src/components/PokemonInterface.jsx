@@ -476,6 +476,7 @@ function PokemonInterface() {
   const [newCardSecondaryType, setNewCardSecondaryType] = useState('none');
   const [newCardAttack, setNewCardAttack] = useState(50);
   const [newCardDefense, setNewCardDefense] = useState(50);
+  const [newCardImageURI, setNewCardImageURI] = useState('');
   const [showSellPopup, setShowSellPopup] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [price, setPrice] = useState('');
@@ -670,6 +671,7 @@ function PokemonInterface() {
                 const owner = await contract.ownerOf(tokenId); // Get the owner of the card
                 if (owner.toLowerCase() === account.toLowerCase()) { // Check if the owner matches the current account
                     const attributes = await contract.getPokemonAttributes(tokenId);//get all attributes
+                    const tokenURI = await contract.tokenURI(tokenId); // Fetch the token URI
                     const isOnSale = await tradeContract.getSale(tokenId); // Check if the card is on sale
 
                     cardsTemp.push({
@@ -681,6 +683,7 @@ function PokemonInterface() {
                         defense: attributes.defense,
                         owner,
                         onSale: isOnSale.price > 0, // Check if the price is greater than 0
+                        imageUrl: tokenURI // Add the image URL to the card data
                     });
                 }
             } catch (error) {
@@ -706,7 +709,8 @@ function PokemonInterface() {
         primaryType: newCardPrimaryType,
         secondaryType: newCardSecondaryType,
         attack: newCardAttack,
-        defense: newCardDefense
+        defense: newCardDefense,
+        imageURI: newCardImageURI
       });
 
       //use mintCard contract with variables from form to create a new nft
@@ -716,7 +720,8 @@ function PokemonInterface() {
         newCardPrimaryType,
         newCardSecondaryType,
         newCardAttack,
-        newCardDefense
+        newCardDefense,
+        newCardImageURI
       );
 
       console.log("Mint transaction:", tx);
@@ -734,6 +739,7 @@ function PokemonInterface() {
       setNewCardSecondaryType('none');
       setNewCardAttack(50);
       setNewCardDefense(50);
+      setNewCardImageURI('');
       
     } catch (error) {
       console.error("Error minting card:", error);
@@ -823,6 +829,19 @@ function PokemonInterface() {
           <option value="Steel">Steel</option>
           <option value="Fairy">Fairy</option>
         </select>
+      </div>
+
+      {/* New Component for handling image URI */}
+      <div className="form-group">
+        <label htmlFor="cardImageURI">Image URI:</label>
+        <input
+          type="text"
+          id="cardImageURI"
+          value={newCardImageURI}
+          onChange={(e) => setNewCardImageURI(e.target.value)}
+          required
+          placeholder="Enter image URI"
+        />
       </div>
 
       {/* Component for handling pokemon attack stat between 0 - 150 */}
@@ -1722,6 +1741,7 @@ useEffect(() => {
             <div className="cards-grid">
               {cards.map((card) => (
                 <div key={card.tokenId} className="card">
+                  <img src={card.imageUrl} alt={card.name} />
                   <h3>{card.name}</h3>
                   <p>Primary Type: {card.primaryType}</p>
                   <p>Secondary Type: {card.secondaryType !== 'none' ? card.secondaryType : 'None'}</p>

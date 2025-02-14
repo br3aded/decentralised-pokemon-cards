@@ -57,6 +57,14 @@ button:disabled {
   border-radius: 8px;
   padding: 15px;
   margin: 10px;
+  text-align: center; /* Center the content */
+}
+
+.card img {
+  width: 100%; /* Make the image responsive */
+  height: auto; /* Maintain aspect ratio */
+  border-radius: 4px; /* Optional: round the corners of the image */
+  margin-bottom: 10px; /* Space below the image */
 }
 
 .card h3,

@@ -5,9 +5,10 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
-// Inherit from ERC721 and ERC721Enumerable
-contract PokemonCard is ERC721, ERC721Enumerable, Ownable {
+// Inherit from ERC721, ERC721Enumerable, and ERC721URIStorage
+contract PokemonCard is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     struct PokemonAttributes {
         string name;        // Name of the Pokémon
         string primaryType; // Primary type (e.g., Fire, Water, Electric)
@@ -50,7 +51,7 @@ contract PokemonCard is ERC721, ERC721Enumerable, Ownable {
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721Enumerable)
+        override(ERC721, ERC721Enumerable, ERC721URIStorage)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
@@ -63,7 +64,8 @@ contract PokemonCard is ERC721, ERC721Enumerable, Ownable {
         string memory _primaryType,
         string memory _secondaryType,
         uint256 attack,
-        uint256 defense
+        uint256 defense,
+        string memory tokenURI
     ) external onlyOwner {
         uint256 tokenId = nextTokenId;
 
@@ -76,6 +78,7 @@ contract PokemonCard is ERC721, ERC721Enumerable, Ownable {
             defense
         );
         _safeMint(to, tokenId);
+        _setTokenURI(tokenId, tokenURI);
 
         nextTokenId++;
     }
@@ -93,4 +96,14 @@ contract PokemonCard is ERC721, ERC721Enumerable, Ownable {
     function getNextTokenId() external view returns (uint256) {
     return nextTokenId;
 }
+
+    // Override tokenURI function to return the URI for a given tokenId
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override(ERC721, ERC721URIStorage)
+        returns (string memory)
+    {
+        return super.tokenURI(tokenId);
+    }
 }
