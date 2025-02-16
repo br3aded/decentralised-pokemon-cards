@@ -696,18 +696,21 @@ function PokemonInterface() {
                 if (owner.toLowerCase() === account.toLowerCase()) { // Check if the owner matches the current account
                     const attributes = await contract.getPokemonAttributes(tokenId);//get all attributes
                     const tokenURI = await contract.tokenURI(tokenId); // Fetch the token URI
+                    const response = await axios.get(tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/")); // Fetch metadata from IPFS
+                    console.log("Metadata response:", response.data); // Log the response
+                    const metadata = response.data; // Get the metadata
                     const isOnSale = await tradeContract.getSale(tokenId); // Check if the card is on sale
 
                     cardsTemp.push({
-                        tokenId,
-                        name: attributes.name,
-                        primaryType: attributes.primaryType,
-                        secondaryType: attributes.secondaryType,
-                        attack: attributes.attack,
-                        defense: attributes.defense,
-                        owner,
-                        onSale: isOnSale.price > 0, // Check if the price is greater than 0
-                        imageUrl: tokenURI // Add the image URL to the card data
+                      tokenId,
+                      name: metadata.name,
+                      primaryType: metadata.attributes[0].value, // Assuming primary type is the first attribute
+                      secondaryType: metadata.attributes[1].value, // Assuming secondary type is the second attribute
+                      attack: metadata.attributes[2].value, // Assuming attack is the third attribute
+                      defense: metadata.attributes[3].value, // Assuming defense is the fourth attribute
+                      owner,
+                      onSale: isOnSale.price > 0, // Check if the price is greater than 0
+                      imageUrl: metadata.image // Add the image URL to the card data
                     });
                 }
             } catch (error) {

@@ -57,6 +57,7 @@ contract PokemonCard is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         return super.supportsInterface(interfaceId);
     }
 
+
     // Mint a new Pokémon card with specific attributes
     function mintCard(
         address to,
@@ -65,7 +66,7 @@ contract PokemonCard is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         string memory _secondaryType,
         uint256 attack,
         uint256 defense,
-        string memory tokenURI
+        string memory ipfsLink
     ) external onlyOwner {
         uint256 tokenId = nextTokenId;
 
@@ -78,7 +79,7 @@ contract PokemonCard is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
             defense
         );
         _safeMint(to, tokenId);
-        _setTokenURI(tokenId, tokenURI);
+        _setTokenURI(tokenId, ipfsLink);
 
         nextTokenId++;
     }
