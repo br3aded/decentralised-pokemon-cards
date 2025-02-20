@@ -722,7 +722,7 @@ function PokemonInterface() {
     }
   };
 
-  // Add this function to handle form submission for minting new card
+  //handle form submission for minting new card
   const handleMintSubmit = async (e) => {
     e.preventDefault();
     if (!contract || !account) return;
@@ -735,7 +735,7 @@ function PokemonInterface() {
         secondaryType: newCardSecondaryType,
         attack: newCardAttack,
         defense: newCardDefense,
-        imageURI: newCardImageURI // This is now set automatically from the JSON data
+        imageURI: newCardImageURI 
       });
 
       const tx = await contract.mintCard(
@@ -780,7 +780,6 @@ function PokemonInterface() {
   //javascript to create mint form
   const mintForm = (
     <form onSubmit={handleMintSubmit} className="mint-form">
-      {/* Replace name input with dropdown */}
       <div className="form-group">
         <label htmlFor="cardName">Pokemon Name:</label>
               <select
@@ -883,7 +882,6 @@ function PokemonInterface() {
             onChange={(e) => setNewCardAttack(Number(e.target.value))}
             min="0"
             max="150"
-            //step="10"
           />
           <button type="button" onClick={() => setNewCardAttack(Math.min(150, newCardAttack + 10))}>+10</button>
         </div>
@@ -901,7 +899,6 @@ function PokemonInterface() {
             onChange={(e) => setNewCardDefense(Number(e.target.value))}
             min="0"
             max="150"
-            //step="10"
           />
           <button type="button" onClick={() => setNewCardDefense(Math.min(150, newCardDefense + 10))}>+10</button>
         </div>
