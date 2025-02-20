@@ -1275,60 +1275,48 @@ function PokemonInterface() {
     }
 
     try {
-        // Initialize temporary arrays to store sales for different components
-        // Your sales will be displayed in the "Your Sales" component and are started by the connected wallet
         const yourSalesTemp = [];
-        // All active sales will be displayed in the "All Active Sales" component and include all sales on the marketplace that arent in "Your Sales"
         const allSalesTemp = [];
-        const activeSalesCount = await contract.getNextTokenId(); // Get the next token ID
+        const activeSalesCount = await contract.getNextTokenId();
 
         for (let tokenId = 0; tokenId < activeSalesCount; tokenId++) {
             try {
                 const sale = await tradeContract.getSale(tokenId);
-                if (sale.price > 0) { // Check if the card is listed for sale
-                    // Fetch attributes for the tokenId
+                if (sale.price > 0) {
                     const attributes = await contract.getPokemonAttributes(tokenId);
+                    // Get the tokenURI for the image
+                    const tokenURI = await contract.tokenURI(tokenId);
                     
-                    // Check if the current user is the seller
+                    const saleData = {
+                        tokenId,
+                        price: sale.price,
+                        seller: sale.seller,
+                        name: attributes.name,
+                        primaryType: attributes.primaryType,
+                        secondaryType: attributes.secondaryType,
+                        attack: attributes.attack,
+                        defense: attributes.defense,
+                        imageUrl: tokenURI // Add the image URL
+                    };
+
                     if (sale.seller.toLowerCase() === account.toLowerCase()) {
-                        yourSalesTemp.push({
-                            tokenId,
-                            price: sale.price,
-                            seller: sale.seller,
-                            name: attributes.name,
-                            primaryType: attributes.primaryType,
-                            secondaryType: attributes.secondaryType,
-                            attack: attributes.attack,
-                            defense: attributes.defense,
-                        });
+                        yourSalesTemp.push(saleData);
                     } else {
-                        allSalesTemp.push({
-                            tokenId,
-                            price: sale.price,
-                            seller: sale.seller,
-                            name: attributes.name,
-                            primaryType: attributes.primaryType,
-                            secondaryType: attributes.secondaryType,
-                            attack: attributes.attack,
-                            defense: attributes.defense,
-                        });
+                        allSalesTemp.push(saleData);
                     }
                 }
             } catch (error) {
                 // Ignore errors for token IDs that do not exist
+                continue;
             }
         }
 
-        setYourSales(yourSalesTemp); // Update state with user's sales
-        setAllSales(allSalesTemp); // Update state with all active sales
-
-        // Log the active sales for verification
-        console.log("Your Sales:", yourSalesTemp);
-        console.log("All Active Sales:", allSalesTemp);
+        setYourSales(yourSalesTemp);
+        setAllSales(allSalesTemp);
     } catch (error) {
         console.error("Error loading active sales:", error);
     }
-  };
+};
 
   useEffect(() => {
     loadActiveSales(); // Load active sales when the component mounts
@@ -1837,6 +1825,14 @@ useEffect(() => {
                     {yourSales.length > 0 ? (
                         yourSales.map((sale) => (
                             <div key={sale.tokenId} className="card">
+                                <img 
+                                    src={sale.imageUrl} 
+                                    alt={sale.name}
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = '/images/default-pokemon.png';
+                                    }}
+                                />
                                 <h3>Name: {sale.name}</h3>
                                 <p>Token ID: {sale.tokenId}</p>
                                 <p>Price: {Number(sale.price) / 1e18} ETH</p> {/* Convert Wei to Ether */}
@@ -1861,6 +1857,14 @@ useEffect(() => {
                     {allSales.length > 0 ? (
                         allSales.map((sale) => (
                             <div key={sale.tokenId} className="card">
+                                <img 
+                                    src={sale.imageUrl} 
+                                    alt={sale.name}
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = '/images/default-pokemon.png';
+                                    }}
+                                />
                                 <h3>Name: {sale.name}</h3>
                                 <p>Token ID: {sale.tokenId}</p>
                                 <p>Price: {Number(sale.price) / 1e18} ETH</p> {/* Convert Wei to Ether */}
