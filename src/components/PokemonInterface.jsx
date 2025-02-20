@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import './PokemonInterface.css';
+import pokemonData from './pokemon_data.json';
 
 // define ABI used to interact with smart contracts for PokemonCard.sol 
 const PokemonCardABI = [
@@ -734,10 +735,9 @@ function PokemonInterface() {
         secondaryType: newCardSecondaryType,
         attack: newCardAttack,
         defense: newCardDefense,
-        imageURI: newCardImageURI
+        imageURI: newCardImageURI // This is now set automatically from the JSON data
       });
 
-      //use mintCard contract with variables from form to create a new nft
       const tx = await contract.mintCard(
         account,
         newCardName,
@@ -753,8 +753,6 @@ function PokemonInterface() {
       console.log("Mint receipt:", receipt);
       console.log("Card minted successfully!");
       
-      // Load the cards immediately after minting
-      console.log("=== LOADING CARDS AFTER MINT ===");
       await loadCards();
       
       // Reset form
@@ -782,21 +780,39 @@ function PokemonInterface() {
   //javascript to create mint form
   const mintForm = (
     <form onSubmit={handleMintSubmit} className="mint-form">
-      {/* Component for handling pokemon name */}
+      {/* Replace name input with dropdown */}
       <div className="form-group">
         <label htmlFor="cardName">Pokemon Name:</label>
-        <input
-          type="text"
-          id="cardName"
-          value={newCardName}
-          onChange={handleNameChange}
-          required
-          placeholder="Enter Pokemon name"
-          pattern="[A-Za-z\s]+"
-          title="Only letters and spaces allowed"
-          maxLength="20"
-        />
-      </div>
+              <select
+        id="cardName"
+        value={newCardName}
+        onChange={(e) => {
+          setNewCardName(e.target.value);
+          // Find the matching Pokemon and set its imageUrl
+          const pokemon = pokemonData.find(p => p.name === e.target.value);
+          if (pokemon) {
+            setNewCardImageURI(pokemon.image_url);
+            // Optionally set other attributes
+            setNewCardPrimaryType(pokemon.primary_type);
+            setNewCardSecondaryType(pokemon.secondary_type || 'none');
+            setNewCardAttack(pokemon.attack);
+            setNewCardDefense(pokemon.defense);
+          }
+        }}
+        required
+      >
+        <option value="">Select a Pokemon</option>
+        {pokemonData && pokemonData.length > 0 ? (
+          pokemonData.map((pokemon, index) => (
+            <option key={`${pokemon.name}-${pokemon.number}-${index}`} value={pokemon.name}>
+              {pokemon.name}
+            </option>
+          ))
+        ) : (
+          <option value="" disabled>No Pokemon data available</option>
+        )}
+      </select>
+        </div>
       
       {/* Component for handling primary pokemon type */}
       <div className="form-group">
@@ -855,19 +871,6 @@ function PokemonInterface() {
         </select>
       </div>
 
-      {/* New Component for handling image URI */}
-      <div className="form-group">
-        <label htmlFor="cardImageURI">Image URI:</label>
-        <input
-          type="text"
-          id="cardImageURI"
-          value={newCardImageURI}
-          onChange={(e) => setNewCardImageURI(e.target.value)}
-          required
-          placeholder="Enter image URI"
-        />
-      </div>
-
       {/* Component for handling pokemon attack stat between 0 - 150 */}
       <div className="form-group">
         <label htmlFor="cardAttack">Attack Points:</label>
@@ -880,7 +883,7 @@ function PokemonInterface() {
             onChange={(e) => setNewCardAttack(Number(e.target.value))}
             min="0"
             max="150"
-            step="10"
+            //step="10"
           />
           <button type="button" onClick={() => setNewCardAttack(Math.min(150, newCardAttack + 10))}>+10</button>
         </div>
@@ -898,7 +901,7 @@ function PokemonInterface() {
             onChange={(e) => setNewCardDefense(Number(e.target.value))}
             min="0"
             max="150"
-            step="10"
+            //step="10"
           />
           <button type="button" onClick={() => setNewCardDefense(Math.min(150, newCardDefense + 10))}>+10</button>
         </div>
