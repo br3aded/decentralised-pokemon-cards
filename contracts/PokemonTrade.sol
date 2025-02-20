@@ -49,6 +49,7 @@ contract PokemonTrade is ReentrancyGuard, IERC721Receiver {
     event AuctionCancelled(uint256 tokenId, address seller);
     event BidWithdrawn(uint256 tokenId, address bidder, uint256 amount);
     event Transfer(address from, address to, uint256 tokenId);
+    event NFTApproved(uint256 indexed tokenId, address indexed owner, address indexed approved);
 
     constructor(address _nftContract, address _pokemonCardAddress) {
         nftContract = IPokemonCard(_nftContract);
@@ -110,38 +111,46 @@ contract PokemonTrade is ReentrancyGuard, IERC721Receiver {
         uint256 tokenId,
         bytes calldata data
     ) external override returns (bytes4) {
-        // Return the function selector to indicate successful receipt
-        return IERC721Receiver.onERC721Received.selector;
+        return this.onERC721Received.selector;
     }
-
-    /// @notice Create an auction for a card
-    /// @param tokenId The ID of the card to auction
-    /// @param minimumPriceInEth Minimum price in ETH (e.g., 1 = 1 ETH)
-    /// @param endTime Exact end time in Unix timestamp (must be on minute boundary)
     function createAuction(uint256 tokenId, uint256 minimumPriceInEth, uint256 endTime) external {
-        require(nftContract.ownerOf(tokenId) == msg.sender, "You do not own this card");
-        require(minimumPriceInEth > 0, "Minimum price must be greater than 0");
+        require(nftContract.ownerOf(tokenId) == msg.sender, "Not the owner of this NFT");
         require(endTime > block.timestamp, "End time must be in the future");
-        require(endTime % 60 == 0, "End time must be at the start of a minute");
-
-        // Convert price from ETH to wei
-        uint256 priceInWei = minimumPriceInEth * 1 ether;
-
-        // Transfer the NFT to this contract immediately
+        require(minimumPriceInEth > 0, "Minimum price must be greater than 0");
+        // Directly transfer NFT to this contract
         nftContract.safeTransferFrom(msg.sender, address(this), tokenId);
-
+        // Create new auction
         Auction storage newAuction = auctions[tokenId];
         newAuction.highestBidder = address(0);
         newAuction.seller = msg.sender;
         newAuction.endTime = endTime;
         newAuction.highestBid = 0;
-        newAuction.startingPrice = priceInWei;
+        newAuction.startingPrice = minimumPriceInEth;
         newAuction.active = true;
-
         totalAuctionTokens++;
-
-        emit AuctionCreated(tokenId, priceInWei, endTime, msg.sender);
+        emit AuctionCreated(tokenId, minimumPriceInEth, endTime, msg.sender);
     }
+
+    function endAuction(uint256 tokenId) external nonReentrant {
+        Auction storage auction = auctions[tokenId];
+        require(auction.active, "Auction does not exist or has already ended");
+        require(block.timestamp >= auction.endTime, "Auction has not ended yet");
+        auction.active = false;
+        if (auction.highestBidder != address(0)) {
+            // Transfer funds to seller
+            payable(auction.seller).transfer(auction.highestBid);
+            // Transfer NFT to winner
+            nftContract.safeTransferFrom(address(this), auction.highestBidder, tokenId);
+            emit AuctionEnded(tokenId, auction.highestBidder, auction.highestBid);
+        } else {
+            // Return NFT to seller if no bids
+            nftContract.safeTransferFrom(address(this), auction.seller, tokenId);
+            emit AuctionEnded(tokenId, address(0), 0);
+        }
+        delete auctions[tokenId];
+        totalAuctionTokens--;
+    }
+
 
     function placeBid(uint256 tokenId) external payable nonReentrant {
         Auction storage auction = auctions[tokenId];
@@ -162,38 +171,6 @@ contract PokemonTrade is ReentrancyGuard, IERC721Receiver {
         auction.highestBidder = msg.sender;
 
         emit BidPlaced(tokenId, msg.sender, msg.value);
-    }
-
-    function endAuction(uint256 tokenId) external nonReentrant {
-        Auction storage auction = auctions[tokenId];
-        require(auction.active, "Auction does not exist or has already ended");
-        require(block.timestamp >= auction.endTime, "Auction has not ended yet");
-
-        auction.active = false;
-
-        if (auction.highestBidder != address(0)) {
-            // Transfer funds to seller first
-            payable(auction.seller).transfer(auction.highestBid);
-
-            // Transfer NFT to winner
-            try nftContract.safeTransferFrom(address(this), auction.highestBidder, tokenId) {
-                emit AuctionEnded(tokenId, auction.highestBidder, auction.highestBid);
-                emit Transfer(address(this), auction.highestBidder, tokenId);
-            } catch {
-                revert("Failed to transfer NFT to winner");
-            }
-        } else {
-            // Return NFT to seller if no bids
-            try nftContract.safeTransferFrom(address(this), auction.seller, tokenId) {
-                emit AuctionEnded(tokenId, address(0), 0);
-            } catch {
-                revert("Failed to return NFT to seller");
-            }
-        }
-
-        // Clean up auction data
-        delete auctions[tokenId];
-        totalAuctionTokens--;
     }
 
     function cancelAuction(uint256 tokenId) external nonReentrant {

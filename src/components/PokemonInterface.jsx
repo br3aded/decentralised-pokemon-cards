@@ -904,6 +904,24 @@ function PokemonInterface() {
         </div>
       </div>
 
+      {/* Add image preview */}
+      <div className="pokemon-preview">
+        {newCardName && newCardImageURI ? (
+          <img 
+            src={newCardImageURI} 
+            alt={newCardName}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = '/images/default-pokemon.png';
+            }}
+          />
+        ) : (
+          <div className="preview-placeholder">
+            Select a Pokemon to see preview
+          </div>
+        )}
+      </div>
+
       <button type="submit" className="mint-button">Mint Pokemon Card</button>
     </form>
   );
@@ -1160,6 +1178,29 @@ function PokemonInterface() {
     .popup-content label {
         display: block;
         margin-bottom: 15px;
+    }
+
+    .pokemon-preview {
+      width: 200px;
+      height: 200px;
+      margin: 10px auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .pokemon-preview img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .preview-placeholder {
+      color: #666;
+      text-align: center;
     }
   `;
 
@@ -1897,7 +1938,7 @@ useEffect(() => {
                             />
                             <h3>Name: {auction.name}</h3>
                             <p>Token ID: {auction.tokenId}</p>
-                            <p>Starting Price: {formatBigNumber(auction.startingPrice)} ETH</p>
+                            <p>Starting Price: {Number(auction.startingPrice.toString())} ETH</p>
                             <p>Highest Bid: {formatBigNumber(auction.highestBid)} ETH</p>
                             <p>Primary Type: {auction.primaryType}</p>
                             <p>Secondary Type: {auction.secondaryType}</p>
@@ -1979,8 +2020,8 @@ useEffect(() => {
                                 />
                                 <h3>Name: {auction.name}</h3>
                                 <p>Token ID: {auction.tokenId}</p>
-                                <p>Starting Price: {Number(auction.startingPrice.toString()) / 1e18} ETH</p>
-                                <p>Highest Bid: {Number(auction.highestBid.toString()) / 1e18} ETH</p>
+                                <p>Starting Price: {Number(auction.startingPrice.toString())} ETH</p>
+                                <p>Highest Bid: {Number(auction.highestBid.toString())/1e18} ETH</p>
                                 <p>Primary Type: {auction.primaryType}</p>
                                 <p>Secondary Type: {auction.secondaryType}</p>
                                 <p>Attack: {Number(auction.attack)}</p>
@@ -2050,7 +2091,7 @@ useEffect(() => {
                     <h3>Place Bid</h3>
                     <p>Token ID: {selectedAuction.tokenId}</p>
                     <p>Current Highest Bid: {formatBigNumber(selectedAuction.highestBid)} ETH</p>
-                    <p>Minimum Bid: {formatBigNumber(selectedAuction.startingPrice)} ETH</p>
+                    <p>Minimum Bid: {Number(selectedAuction.startingPrice.toString())} ETH</p>
                     <label>
                         Your Bid (ETH):
                         <input 
