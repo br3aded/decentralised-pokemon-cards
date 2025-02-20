@@ -1453,62 +1453,50 @@ function PokemonInterface() {
     if (!tradeContract) return;
 
     try {
-        //variables to store the auctions split by your auctions and active auctions similar to sales
         const yourAuctionsTemp = [];
         const activeAuctionsTemp = [];
         const totalTokens = await contract.getNextTokenId();
 
-        //functionality for loading all active auctions
-        const auctionPromises = [];
         for (let tokenId = 0; tokenId < totalTokens; tokenId++) {
-            auctionPromises.push(
-                tradeContract.getAuction(tokenId)
-                    .then(async (auction) => {
-                        // Only process if auction exists, has a seller, and is active
-                        if (auction && 
-                            auction.seller !== '0x0000000000000000000000000000000000000000' && 
-                            auction.active && 
-                            Number(auction.endTime) > Math.floor(Date.now() / 1000)) {  // Check if not ended
-                            try {
-                                const cardAttributes = await contract.getPokemonAttributes(tokenId);
-                                const auctionDetails = {
-                                    tokenId,
-                                    startingPrice: auction.startingPrice,
-                                    highestBid: auction.highestBid,
-                                    highestBidder: auction.highestBidder,
-                                    seller: auction.seller,
-                                    endTime: auction.endTime,
-                                    active: auction.active,
-                                    name: cardAttributes.name,
-                                    bids: auction.bids
-                                };
-                                return { success: true, auction: auctionDetails };
-                            } catch (error) {
-                                return { success: false };
-                            }
-                        }
-                        return { success: false };
-                    })
-                    .catch(() => {
-                        return { success: false };
-                    })
-            );
-        }
+            try {
+                const auction = await tradeContract.getAuction(tokenId);
+                if (auction && 
+                    auction.seller !== '0x0000000000000000000000000000000000000000' && 
+                    auction.active && 
+                    Number(auction.endTime) > Math.floor(Date.now() / 1000)) {
+                    
+                    const cardAttributes = await contract.getPokemonAttributes(tokenId);
+                    const tokenURI = await contract.tokenURI(tokenId);
 
-        //filter auctions in your auctions and active auctions
-        const results = await Promise.allSettled(auctionPromises);
-        results.forEach((result) => {
-            if (result.status === 'fulfilled' && result.value.success) {
-                const auctionDetails = result.value.auction;
-                if (auctionDetails.seller.toLowerCase() === account.toLowerCase()) {
-                    yourAuctionsTemp.push(auctionDetails);
-                } else if (!auctionDetails.bids.some(bid => 
-                    bid.bidder.toLowerCase() === account.toLowerCase()
-                )) {
-                    activeAuctionsTemp.push(auctionDetails);
+                    const auctionDetails = {
+                        tokenId,
+                        startingPrice: auction.startingPrice,
+                        highestBid: auction.highestBid,
+                        highestBidder: auction.highestBidder,
+                        seller: auction.seller,
+                        endTime: auction.endTime,
+                        active: auction.active,
+                        name: cardAttributes.name,
+                        primaryType: cardAttributes.primaryType,
+                        secondaryType: cardAttributes.secondaryType,
+                        attack: cardAttributes.attack,
+                        defense: cardAttributes.defense,
+                        imageUrl: tokenURI,
+                        bids: auction.bids
+                    };
+
+                    if (auctionDetails.seller.toLowerCase() === account.toLowerCase()) {
+                        yourAuctionsTemp.push(auctionDetails);
+                    } else if (!auctionDetails.bids.some(bid => 
+                        bid.bidder.toLowerCase() === account.toLowerCase()
+                    )) {
+                        activeAuctionsTemp.push(auctionDetails);
+                    }
                 }
+            } catch (error) {
+                continue;
             }
-        });
+        }
 
         setYourAuctions(yourAuctionsTemp);
         setActiveAuctions(activeAuctionsTemp);
@@ -1667,6 +1655,11 @@ const loadYourBids = async () => {
                         endTime: auction.endTime,
                         active: auction.active,
                         name: cardAttributes.name,
+                        primaryType: cardAttributes.primaryType,
+                        secondaryType: cardAttributes.secondaryType,
+                        attack: cardAttributes.attack,
+                        defense: cardAttributes.defense,
+                        imageUrl: await contract.tokenURI(tokenId),
                         yourBid: auction.bids.find(bid => 
                             bid.bidder.toLowerCase() === account.toLowerCase()
                         ).amount
@@ -1897,11 +1890,24 @@ useEffect(() => {
                 {yourAuctions.length > 0 ? (
                     yourAuctions.map((auction) => (
                         <div key={auction.tokenId} className="card">
-                            <h3>Token ID: {auction.tokenId}</h3>
-                            <p>Name: {auction.name}</p>
+                            <img 
+                                src={auction.imageUrl} 
+                                alt={auction.name}
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = '/images/default-pokemon.png';
+                                }}
+                            />
+                            <h3>Name: {auction.name}</h3>
+                            <p>Token ID: {auction.tokenId}</p>
                             <p>Starting Price: {formatBigNumber(auction.startingPrice)} ETH</p>
                             <p>Highest Bid: {formatBigNumber(auction.highestBid)} ETH</p>
+                            <p>Primary Type: {auction.primaryType}</p>
+                            <p>Secondary Type: {auction.secondaryType}</p>
+                            <p>Attack: {Number(auction.attack)}</p>
+                            <p>Defense: {Number(auction.defense)}</p>
                             <p>Ends At: {new Date(Number(auction.endTime) * 1000).toLocaleString()}</p>
+                            <p>Seller: {auction.seller}</p>
                         </div>
                     ))
                 ) : (
@@ -1917,11 +1923,24 @@ useEffect(() => {
                     {yourBids.length > 0 ? (
                         yourBids.map((auction) => (
                             <div key={auction.tokenId} className="card">
-                                <h3>Token ID: {auction.tokenId}</h3>
-                                <p>Name: {auction.name}</p>
+                                <img 
+                                    src={auction.imageUrl} 
+                                    alt={auction.name}
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = '/images/default-pokemon.png';
+                                    }}
+                                />
+                                <h3>Name: {auction.name}</h3>
+                                <p>Token ID: {auction.tokenId}</p>
                                 <p>Your Bid: {Number(auction.yourBid.toString()) / 1e18} ETH</p>
                                 <p>Current Highest Bid: {Number(auction.highestBid.toString()) / 1e18} ETH</p>
+                                <p>Primary Type: {auction.primaryType}</p>
+                                <p>Secondary Type: {auction.secondaryType}</p>
+                                <p>Attack: {Number(auction.attack)}</p>
+                                <p>Defense: {Number(auction.defense)}</p>
                                 <p>Ends At: {new Date(Number(auction.endTime) * 1000).toLocaleString()}</p>
+                                <p>Seller: {auction.seller}</p>
                                 {auction.highestBidder.toLowerCase() === account.toLowerCase() ? (
                                     <p className="highest-bidder">You are the highest bidder!</p>
                                 ) : (
@@ -1929,7 +1948,6 @@ useEffect(() => {
                                         <p className="outbid">You have been outbid</p>
                                         <button 
                                             className="action-button" 
-                                            style={{ marginTop: '10px' }}
                                             onClick={() => {
                                                 setSelectedAuction(auction);
                                                 setShowBidPopup(true);
@@ -1947,20 +1965,33 @@ useEffect(() => {
                 </div>
             </div>
 
-            {/* Active Auctions Section */}
+            {/* All Auctions Section */}
             <div className="active-auctions-container">
                 <h3>All Auctions</h3>
                 <div className="active-auctions-grid">
                     {activeAuctions.length > 0 ? (
                         activeAuctions.map((auction) => (
                             <div key={auction.tokenId} className="card">
-                                <h3>Token ID: {auction.tokenId}</h3>
-                                <p>Starting Price: {Number(auction.startingPrice.toString())/ 1e18} ETH</p>
+                                <img 
+                                    src={auction.imageUrl} 
+                                    alt={auction.name}
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = '/images/default-pokemon.png';
+                                    }}
+                                />
+                                <h3>Name: {auction.name}</h3>
+                                <p>Token ID: {auction.tokenId}</p>
+                                <p>Starting Price: {Number(auction.startingPrice.toString()) / 1e18} ETH</p>
                                 <p>Highest Bid: {Number(auction.highestBid.toString()) / 1e18} ETH</p>
+                                <p>Primary Type: {auction.primaryType}</p>
+                                <p>Secondary Type: {auction.secondaryType}</p>
+                                <p>Attack: {Number(auction.attack)}</p>
+                                <p>Defense: {Number(auction.defense)}</p>
                                 <p>Ends At: {new Date(Number(auction.endTime) * 1000).toLocaleString()}</p>
+                                <p>Seller: {auction.seller}</p>
                                 <button 
-                                    className="action-button" 
-                                    style={{ marginTop: '10px' }}
+                                    className="action-button"
                                     onClick={() => {
                                         setSelectedAuction(auction);
                                         setShowBidPopup(true);
