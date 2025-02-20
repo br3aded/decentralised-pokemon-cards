@@ -305,8 +305,8 @@ h1 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 50vh;
-  text-align: center;
+  gap: 20px;
+  padding: 40px;
 }
 
 .connect-wallet-container button {
@@ -322,6 +322,13 @@ h1 {
 .connect-wallet-container button:hover {
   background-color: #CC0000;
 }
+
+.pokeball-image {
+  width: 150px;
+  height: 150px;
+}
+
+
 
 .active-auctions-container,
 .your-auctions-container,

@@ -1752,6 +1752,11 @@ useEffect(() => {
       {/* front page when connecting without a connected wallet*/}
       {!account ? (
         <div className="connect-wallet-container">
+          <img 
+            src="src\images\pokeball.png" 
+            alt="pokeball"
+            className="pokeball-image"
+            />
           <button onClick={connectWallet}>Connect Wallet</button>
           <p>Please connect your wallet to continue</p>
         </div>
