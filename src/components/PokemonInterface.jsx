@@ -1836,7 +1836,6 @@ useEffect(() => {
                                 <h3>Name: {sale.name}</h3>
                                 <p>Token ID: {sale.tokenId}</p>
                                 <p>Price: {Number(sale.price) / 1e18} ETH</p> {/* Convert Wei to Ether */}
-                                <p>Seller: {sale.seller}</p>
                                 <p>Primary Type: {sale.primaryType}</p>
                                 <p>Secondary Type: {sale.secondaryType}</p>
                                 <p>Attack: {Number(sale.attack)}</p>
@@ -1867,13 +1866,19 @@ useEffect(() => {
                                 />
                                 <h3>Name: {sale.name}</h3>
                                 <p>Token ID: {sale.tokenId}</p>
-                                <p>Price: {Number(sale.price) / 1e18} ETH</p> {/* Convert Wei to Ether */}
+                                <p>Price: {Number(sale.price) / 1e18} ETH</p>
+                                <p>Primary Type: {sale.primaryType}</p>
+                                <p>Secondary Type: {sale.secondaryType}</p>
+                                <p>Attack: {Number(sale.attack)}</p>
+                                <p>Defense: {Number(sale.defense)}</p>
                                 <p>Seller: {sale.seller}</p>
-                                <button className="action-button" onClick={() => handleBuyCard(sale.tokenId)}>Buy Card</button>
+                                <button className="action-button" onClick={() => handleBuyCard(sale.tokenId)}>
+                                    Buy Card
+                                </button>
                             </div>
                         ))
                     ) : (
-                        <p>No active sales found.</p> // Message when there are no active sales
+                        <p>No active sales found.</p>
                     )}
                 </div>
             </div>
