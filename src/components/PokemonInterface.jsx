@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import './PokemonInterface.css';
-import axios from 'axios';
 
 // define ABI used to interact with smart contracts for PokemonCard.sol 
 const PokemonCardABI = [
