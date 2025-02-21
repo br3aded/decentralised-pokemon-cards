@@ -1,8 +1,3 @@
-# Sample Hardhat Project
-
-This project is a decentralized application (dApp) that enables users to mint, trade, and auction Pokemon cards as NFTs (Non-Fungible Tokens) on the Ethereum blockchain. The application is built using React, Ethers.js, and Hardhat.
-
-
 ## Table of Contents
 
 - [Features](#features)
@@ -77,7 +72,9 @@ Navigate to the project directory and install the required dependencies:
 ### Smart Contract Deployment
 
 To deploy the smart contracts locally:
+
 `npx hardhat node`
+
 `npx hardhat run scripts/deploy.js --network localhost`
 
 Connect MetaMask to Local Hardhat Network:
@@ -135,6 +132,7 @@ Open your browser and navigate to `http://localhost:5173`.
 
 - **listCard**: Function to list a card for sale.
 - **getSale**: Function to retrieve sale details for a specific token.
+- **buyCard**: Function to buy a listed card. Transfers NFT to new owner and funds to seller.
 - **createAuction**: Function to create an auction for a card.
 - **placeBid**: Places a bid on an active auction.
 - **endAuction**: Ends an auction and transfers the NFT to the highest bidder.
@@ -149,6 +147,26 @@ Open your browser and navigate to `http://localhost:5173`.
 - **State Management**: Uses React hooks to manage state for account, cards, sales, and auctions.
 - **Ethers.js Integration**: Interacts with smart contracts using Ethers.js.
 - **Image display**: Fetches image metadata from URI for each Pokemon card.
+
+#### PokemonInterface.css
+Contains styling for the frontend interface
+
+### Using the Frontend
+
+#### Connecting Account
+When navigating to the frontend for the first time the user will be presented with a page allowing them to link there metamask wallet to this webite. Clicking the "Connect Wallet" Button will prompt a metamask login. Once connected the pokemon trading card interface for the connect wallet with display. At the top of the page we display the connect wallet address and wether they are the owner of the PokemonCard contract. This will always be account 0 from the hardhat node. The button "Check Ownership" will check if the owner account is the connect account.
+
+#### Mint New Cards
+Only the owner of the PokemonCard Contract can mint new cards. This helps to control the flow of NFTs created. The owner account will be presented with a minting card form with the options to select Pokemon Name , Primary Type, Secondary Type, Attack Points and Defense Points. Pokemon Name is a drop down box containing 900+ pokemon sourced within the pokemon_data.json. The user can select any of these and the other attributes will be automatically changed to match the selected Pokemon. A preview image of the pokemon will also be displayed. The user can change the attributes for a selected Pokemon allwoing for customisation and a large combinations of unqiue NFTs e.g. we can make a charizard that is ice , fighting type with 150 attack and 20 defense. Once the attributes have been filled out clicking the "Mint Pokemon Card" Button will use the mintCard contract to produce a new NFT with connect wallet as the owner. The NFT will also appear in the Metamask wallet.
+
+#### Your Pokemon Cards
+The you Pokemon Cards section displays all the cards that the connect wallet is listed as the owner of. This will display the Pokemon image , its assocaited attributes. Each card has two buttons "Sell Card" and "Create Auction". The first will allow the users to list a Pokemon Card at a fixed sale price. This is done through popup allowing them to enter the price in ETH and confirm they want to sell it this then runs the listCard contract. The second allows the user to create an auction. For this they can enter a minimum price and a time for which they want the auction to end. Once this is confirmed the createAuction contract is run. The Pokemon card will be removed from Your Cards as part of this contract we transfer the NFT to the smart contract to prevent the user from declining auctions with prices they don't want. Once a card has been listed it will display text saying "Listed for Sale" and the buttons will be removed.
+
+#### Active Sales
+The active sales container has two sections; "Your Sales" and "All Sales". The first section contains only the sales listed by the connected wallet. This displays the attributes of the card and a the button "Remove from Sale" which when clicked will run the cancelSale contract removing the listing. The All Sales section contains sales that the connect account has not listed. We filter out the owners listing to ensure they are not present in this section. This allows users to view all the listed cards their attributes,price and the sellers address are display. Each card in this section also has a button "Buy Card" this will run the buyCard contract which will transfer the NFT to the buyer and the funds to the seller. Once this is carried out sales will be removed from "Active Sales" and the sold card will appear in the new owners "Your Pokemon Cards"
+
+#### Active Auctions
+The active auctions container has three sections; "Your Auctions" , "Your Bids" and "All Auctions".
 
 ## Contribution to the Project
 
@@ -173,6 +191,14 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 ## Future improvements
 
 We originally developed the ability to store metadata using IPFS (Pinata) but ran out of time displaying it correclty in the front-end. This would be our main future improvement.
+
+Additional attributed could be added to the Pokemon Cards e.g. HP , Attacks , Is it a shiny? allowing for more variety within the NFTs
+
+Unqiue card art could be added using AI generation e.g. water type Charizard. This would motivate users to collect many types of the same card.
+
+Extra functions for Auctions were developed in the trade contract, canceling auctions and bids, but not implemented in the frontend. These could be added in the future.
+
+Funcationality for allowing not owner users to mint there own cards through a curreny system.
 
 ## License
 
