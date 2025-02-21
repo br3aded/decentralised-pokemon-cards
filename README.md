@@ -102,6 +102,9 @@ Connect MetaMask to Local Hardhat Network:
 
 Open your browser and navigate to `http://localhost:5173`.
 
+If there are issues with incorrect blocks. Reset the metamask wallet by removing NFTs and resetting the wallet in setting.
+
+Additionally , restarting the node , contract deployment and local host can fix issues. Closing the browser has also shown to fix some issues. 
 
 
 ## Usage
@@ -166,7 +169,7 @@ The you Pokemon Cards section displays all the cards that the connect wallet is 
 The active sales container has two sections; "Your Sales" and "All Sales". The first section contains only the sales listed by the connected wallet. This displays the attributes of the card and a the button "Remove from Sale" which when clicked will run the cancelSale contract removing the listing. The All Sales section contains sales that the connect account has not listed. We filter out the owners listing to ensure they are not present in this section. This allows users to view all the listed cards their attributes,price and the sellers address are display. Each card in this section also has a button "Buy Card" this will run the buyCard contract which will transfer the NFT to the buyer and the funds to the seller. Once this is carried out sales will be removed from "Active Sales" and the sold card will appear in the new owners "Your Pokemon Cards"
 
 #### Active Auctions
-The active auctions container has three sections; "Your Auctions" , "Your Bids" and "All Auctions".
+The active auctions container has three sections; "Your Auctions" , "Your Bids" and "All Auctions". The first section contains only the auction listed by the connect wallet. This displays the Pokemon Image , attributes , the starting price and the current highest bid allowing them to check the progress of the auction and the time the auction is set to end. The "All Auctions" section is where all the auctions were auctions not listed by the wallet are first displayed. This again displays all the attribute and auction stats. The user can bid on the auction using the "Make Bid" button. This presents a pop up allowing the user to bid only above the current highest bid and runs the placeBid contract when confirmed. Once the user has bid on an auction it will then be displayed in the "Your Bids" Section allowing them to keep track of there active bids better. If they are the highest bidder it will display text "You are the highest bidder!" or if they have been outbid then can then use the "Make Bid" button again. When a user makes a bid the funds are transferred out of there account to the contract but if they are outbid this is refunded back to them by the placeBid contract and replaced by the new highest bidders funds. To end auctions the frontend checks on the minute every minute to see if any auctions have ended. This will then run the endAuction Contract for the account that listed the auction. If they decline this they lose there NFT as it has been transferred to the contract. This aims to deter against users declining the final price for an auction. Once the auction has ended the NFT will be transferred to the buyer and funds to the seller with the auction no longer displayed in the "Active Auctions" container.
 
 ## Contribution to the Project
 
