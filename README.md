@@ -1,56 +1,20 @@
 # Sample Hardhat Project
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+This project is a decentralized application (dApp) that enables users to mint, trade, and auction Pokemon cards as NFTs (Non-Fungible Tokens) on the Ethereum blockchain. The application is built using React, Ethers.js, and Hardhat.
 
-Try running some of the following tasks:
-
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.js
-```
-
-make sure node.js is installed
-
-ensure hardhat is installed locally in the project directory with `npm install --save-dev hardhat`
-
-To run project
-
-`npx hardhat node`
-
-`npx hardhat run scripts/deploy.js --network localhost`
-
-`npm run dev`
-
-
-for metamask wallet connect to local hardhat network using
-
-     Network Name: Hardhat Local
-     
-     New RPC URL: http://127.0.0.1:8545/
-     
-     Chain ID: 31337
-     
-     Currency Symbol: ETH
-
-to ensure you are on the owner address import the private key into metamask from the node console account 0 with the private key given
-
-# Pokemon Card NFT Trading
-
-This project is a decentralized application (dApp) that allows users to mint, trade, and auction Pokemon cards as NFTs (Non-Fungible Tokens) on the Ethereum blockchain. The application is built using React, Ethers.js, and Hardhat.
 
 ## Table of Contents
 
 - [Features](#features)
 - [Technologies Used](#technologies-used)
 - [Setup Instructions](#setup-instructions)
-- [Contract Deployment](#contract-deployment)
+- [Smart Contract Deployment](#contract-deployment)
 - [Application Structure](#application-structure)
 - [Usage](#usage)
 - [Technical Documentation](#technical-documentation)
+- [Contribution to the Project](#contribution-to-the-project)
 - [Contributing](#contributing)
+- [Future Improvements](#future-improvements)
 - [License](#license)
 
 ## Features
@@ -82,6 +46,9 @@ Before you begin, ensure you have the following installed:
 
 ### Clone the Repository
 
+git clone https://github.com/br3aded/decentralised-pokemon-cards.git
+cd decentralised-pokemon-cards
+
 
 ### Install Dependencies
 
@@ -107,9 +74,29 @@ Navigate to the project directory and install the required dependencies:
    npx hardhat compile
    ```
 
-### Deploy Contracts
+### Smart Contract Deployment
 
+To deploy the smart contracts locally:
+`npx hardhat node`
 `npx hardhat run scripts/deploy.js --network localhost`
+
+Connect MetaMask to Local Hardhat Network:
+
+-Open MetaMask and go to Settings > Networks.
+
+-Click Add Network and enter the following details:
+
+-Network Name: Hardhat Local
+
+-New RPC URL: http://127.0.0.1:8545/
+
+-Chain ID: 31337
+
+-Currency Symbol: ETH
+
+-Import the private key from Account 0 of the Hardhat node console.
+
+
 
 
 ### Start the Application
@@ -138,12 +125,22 @@ Open your browser and navigate to `http://localhost:5173`.
 - **mintCard**: Function to mint a new Pokemon card.
 - **getPokemonAttributes**: Function to retrieve attributes of a Pokemon card.
 - **ownerOf**: Function to get the owner of a specific token.
+- **transferFrom**: Transfers ownership of a token from one address to another.
+- **approve**: Approves another address to transfer a specific token on behalf of the owner.
+- **setApprovalForAll**: Approves or revokes approval for an operator to manage all tokens of an owner.
+- **isApprovedForAll**: Checks if an operator is approved to manage all tokens of an owner.
+- **tokenURI**: Retrieves metadata URI for a given token ID.
 
 #### PokemonTrade.sol
 
 - **listCard**: Function to list a card for sale.
 - **getSale**: Function to retrieve sale details for a specific token.
 - **createAuction**: Function to create an auction for a card.
+- **placeBid**: Places a bid on an active auction.
+- **endAuction**: Ends an auction and transfers the NFT to the highest bidder.
+- **cancelSale**: Cancels a listed sale and returns the card to the owner.
+- **withdrawFunds**: Allows the seller to withdraw funds from a completed sale.
+- **getAuctionDetails**: Retrieves details of an ongoing auction.
 
 ### Frontend Components
 
@@ -151,12 +148,33 @@ Open your browser and navigate to `http://localhost:5173`.
 
 - **State Management**: Uses React hooks to manage state for account, cards, sales, and auctions.
 - **Ethers.js Integration**: Interacts with smart contracts using Ethers.js.
-- **IPFS Integration**: Fetches metadata from IPFS for each Pokemon card.
+- **Image display**: Fetches image metadata from URI for each Pokemon card.
+
+## Contribution to the Project
+
+This project was developed as a collaborative effort between Kelsey and Ramón, ensuring equitable distribution of work while fostering teamwork and technical understanding.
+
+Ramón was responsible for writing the smart contracts in Solidity and implementing unit tests to ensure their security and functionality. He also set up and configured Hardhat for testing. Moreover, Ramón wrote the documentation.
+
+Kelsey handled the frontend development using React, integrating Ethers.js for blockchain interactions and connecting the UI to the deployed smart contracts. He focused on creating an intuitive user experience and designing the application layout.
+
+We both worked on the Hardhat contract deployment file.
+
+Towards the final stages of development, we both collaborated to refine and optimize the codebase. We worked together to debug issues, improve contract logic, and enhance frontend performance to ensure a seamless user experience.
+
+Regarding the video recording, we recorded a demo on Kelsey's computer and then each added our voice over the video.
+
+Both team members demonstrated a comprehensive understanding of all components, ensuring that knowledge was shared equally. This balanced approach allowed for effective troubleshooting and robust project development.
 
 ## Contributing
 
 Contributions are welcome! Please fork the repository and submit a pull request with your changes.
 
+## Future improvements
+
+We originally developed the ability to store metadata using IPFS (Pinata) but ran out of time displaying it correclty in the front-end. This would be our main future improvement.
+
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
+
